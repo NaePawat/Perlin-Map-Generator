@@ -67,14 +67,19 @@ void AMapGenerator::CreateVertices()
 				const float PerlinValue = FMath::PerlinNoise2D(FVector2D(SampleX, SampleY)); // * 2 - 1 so the value of the perlin is not negative
 				NoiseHeight += PerlinValue * Amplitude;
 
-				/*UE_LOG(LogTemp, Warning, TEXT("noise perlin: %f %f"), NoiseHeight, PerlinValue);*/
+				//UE_LOG(LogTemp, Warning, TEXT("height perlin: %f %f"), NoiseHeight * ZMultiplier, PerlinValue);
 
 				Amplitude *= Persistance;
 				Frequency *= Lacunarity;
 			}
+
+			const float z = NoiseHeight * ZMultiplier >= ZMultiplier / FlatLandThreshold ?
+				NoiseHeight * ZMultiplier : FMath::Pow(2, ZMultiplier*(NoiseHeight - 1));
+
+			UE_LOG(LogTemp, Warning, TEXT("height: %f %d"), NoiseHeight * ZMultiplier, NoiseHeight * ZMultiplier >= ZMultiplier / FlatLandThreshold);
 			
 			//create vertices (Perlin noise)
-			Vertices.Add(FVector(x * Scale, y * Scale, NoiseHeight * ZMultiplier));
+			Vertices.Add(FVector(x * Scale, y * Scale, z));
 			UV0.Add(FVector2D(x * UVScale, y * UVScale));
 
 			//Debug the vertices spawning (Performance consuming, watch out!)

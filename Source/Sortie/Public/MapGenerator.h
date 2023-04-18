@@ -30,7 +30,10 @@ protected:
 	int YSize = 0; //init y-axis number of squares
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
-	float ZMultiplier = 1.0f;
+	float ZMultiplier = 1.0f; //amplitude enhance of the height map
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 1))
+	float FlatLandThreshold = 1.0f;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	float NoiseScale = 1.0f; //the scale of perlin noise grain
