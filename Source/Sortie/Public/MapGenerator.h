@@ -49,6 +49,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
 	float UVScale = 0; 
+
+	UPROPERTY(EditAnywhere)
+	int Seed = 0;
 	
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material; // material applied to the generated mesh

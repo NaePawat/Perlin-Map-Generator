@@ -2,6 +2,7 @@
 
 
 #include "MapGenerator.h"
+#include "Math/RandomStream.h"
 #include "ProceduralMeshComponent.h"
 
 // Sets default values
@@ -35,8 +36,19 @@ void AMapGenerator::Tick(float DeltaTime)
 
 }
 
+//Function for creating a random perlin noise map
 void AMapGenerator::CreateVertices()
 {
+	const FRandomStream* RandomStream = new FRandomStream(Seed);
+	TArray<FVector2D> OctaveOffsets;
+
+	for(int i = 0; i < Octaves; i++)
+	{
+		const float OffsetX = RandomStream->RandRange(0, 100);
+		const float OffsetY = RandomStream->RandRange(0, 100);
+		OctaveOffsets.Add(FVector2D(OffsetX, OffsetY));
+	}
+	
 	for(int x=0; x < XSize; x++)
 	{
 		for(int y=0; y < YSize; y++)
@@ -49,8 +61,8 @@ void AMapGenerator::CreateVertices()
 			//loop through all octaves and sample it to correct height
 			for(int i = 0; i < Octaves ; i++)
 			{
-				const float SampleX = x / NoiseScale * Frequency;
-				const float SampleY = y / NoiseScale * Frequency;
+				const float SampleX = x / NoiseScale * Frequency + OctaveOffsets[i].X;
+				const float SampleY = y / NoiseScale * Frequency + OctaveOffsets[i].Y;
 
 				const float PerlinValue = FMath::PerlinNoise2D(FVector2D(SampleX, SampleY)); // * 2 - 1 so the value of the perlin is not negative
 				NoiseHeight += PerlinValue * Amplitude;
@@ -61,34 +73,37 @@ void AMapGenerator::CreateVertices()
 				Frequency *= Lacunarity;
 			}
 			
-			//create random height for the vertices (Perlin noise)
-			/*const float z = FMath::PerlinNoise2D(FVector2D(x * NoiseScale + 0.1, y * NoiseScale + 0.1)) * ZMultiplier;*/
-			
+			//create vertices (Perlin noise)
 			Vertices.Add(FVector(x * Scale, y * Scale, NoiseHeight * ZMultiplier));
 			UV0.Add(FVector2D(x * UVScale, y * UVScale));
 
-			//Debug the vertices spawning
-			DrawDebugSphere(GetWorld(), FVector(x * Scale, y * Scale, 0), 25.0f, 16, FColor::Red, true, -1.0f, 0u, 0.0f);
+			//Debug the vertices spawning (Performance consuming, watch out!)
+			//DrawDebugSphere(GetWorld(), FVector(x * Scale, y * Scale, NoiseHeight * ZMultiplier), 25.0f, 16, FColor::Red, true, -1.0f, 0u, 0.0f);
 		}
 	}
 }
 
 void AMapGenerator::CreateTriangles()
 {
-	for(int x=0; x < XSize; x++)
+	//Credit: Sebastian Lague!
+	int VertexIndex = 0;
+	for(int x = 0; x < XSize; x++)
 	{
-		for(int y=0; y < YSize; y++)
+		for(int y = 0; y< YSize; y++)
 		{
 			//Create a rectangle from 2 triangles (CCW)
-			int BottomLeftVertices = y + YSize * x; 
-			
-			Triangles.Add(BottomLeftVertices); // bottom left first triangle
-			Triangles.Add( BottomLeftVertices + 1); // bottom right first triangle
-			Triangles.Add(YSize + BottomLeftVertices); //top left first triangle
-			
-			Triangles.Add(BottomLeftVertices +1); //bottom right second triangle
-			Triangles.Add(YSize + BottomLeftVertices + 1); // top right second triangle
-			Triangles.Add(YSize + BottomLeftVertices); //top left second triangle
+			if(x < XSize-1 && y < YSize-1)
+			{
+				Triangles.Add(VertexIndex); //top left first triangle
+				Triangles.Add(VertexIndex + YSize + 1); // bottom right first triangle
+				Triangles.Add(VertexIndex + YSize); // bottom left first triangle
+				
+				Triangles.Add(VertexIndex + YSize + 1); //bottom right second triangle
+				Triangles.Add(VertexIndex); //top left second triangle
+				Triangles.Add(VertexIndex + 1); // top right second triangle
+			}
+
+			VertexIndex++;
 		}
 	}
 }
