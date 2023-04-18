@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class SortieEditorTarget : TargetRules
 {
-	public SortieEditorTarget( TargetInfo Target) : base(Target)
+	public SortieEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
