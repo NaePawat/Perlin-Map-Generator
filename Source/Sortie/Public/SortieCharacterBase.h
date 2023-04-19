@@ -3,8 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputActionValue.h"
 #include "GameFramework/Character.h"
 #include "SortieCharacterBase.generated.h"
+
+//forward declaration
+class UCameraComponent;
+class USpringArmComponent;
+class UInputMappingContext;
+class UInputAction;
 
 UCLASS()
 class SORTIE_API ASortieCharacterBase : public ACharacter
@@ -16,6 +23,31 @@ public:
 	ASortieCharacterBase();
 
 protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	UCameraComponent* CameraComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	USpringArmComponent* SpringArmComp;
+
+	//#region Player Input
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputMappingContext* PlayerMappingContext; //let's forward declare this because it's a pointer
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* MoveForwardAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* MoveRightAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* LookAction;
+	
+	void MoveForward(const FInputActionValue& Value);
+	void MoveRight(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+	//#endregion
+	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 

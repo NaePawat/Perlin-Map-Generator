@@ -19,14 +19,7 @@ AMapGenerator::AMapGenerator()
 void AMapGenerator::BeginPlay()
 {
 	Super::BeginPlay();
-
-	CreateVertices();
-	CreateTriangles();
-	
-	ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	UE_LOG(LogTemp, Warning, TEXT("current total vertices: %d"), Vertices.Num());
-	UE_LOG(LogTemp, Warning, TEXT("current total triangles: %d"), Triangles.Num());
-	ProceduralMesh->SetMaterial(0, Material);
+	CreateProceduralTerrainChunk();
 }
 
 // Called every frame
@@ -34,6 +27,17 @@ void AMapGenerator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AMapGenerator::CreateProceduralTerrainChunk()
+{
+	CreateVertices();
+	CreateTriangles();
+	
+	ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	UE_LOG(LogTemp, Warning, TEXT("current total vertices: %d"), Vertices.Num());
+	UE_LOG(LogTemp, Warning, TEXT("current total triangles: %d"), Triangles.Num());
+	ProceduralMesh->SetMaterial(0, Material);
 }
 
 //Function for creating a random perlin noise map

@@ -20,11 +20,9 @@ public:
 	AMapGenerator();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
-	int ChunkSize = 0; //number of squares matrix
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 241))
+	int ChunkSize = 0; //number of squares matrix (recommend base 2 divisible)
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	float ZMultiplier = 1.0f; //amplitude enhance of the height map
@@ -58,10 +56,15 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material; // material applied to the generated mesh
+
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	void CreateProceduralTerrainChunk();
 
 private:
 	UProceduralMeshComponent* ProceduralMesh;
