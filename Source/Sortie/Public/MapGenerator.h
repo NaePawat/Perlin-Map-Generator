@@ -52,6 +52,9 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	int Seed = 0;
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 6))
+	int LOD = 0;
 	
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material; // material applied to the generated mesh

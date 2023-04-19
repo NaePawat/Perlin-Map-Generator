@@ -75,8 +75,6 @@ void AMapGenerator::CreateVertices()
 
 			const float z = NoiseHeight * ZMultiplier >= ZMultiplier / FlatLandThreshold ?
 				NoiseHeight * ZMultiplier : FMath::Pow(2, ZMultiplier*(NoiseHeight - 1));
-
-			UE_LOG(LogTemp, Warning, TEXT("height: %f %d"), NoiseHeight * ZMultiplier, NoiseHeight * ZMultiplier >= ZMultiplier / FlatLandThreshold);
 			
 			//create vertices (Perlin noise)
 			Vertices.Add(FVector(x * Scale, y * Scale, z));
@@ -91,25 +89,32 @@ void AMapGenerator::CreateVertices()
 void AMapGenerator::CreateTriangles()
 {
 	//Credit: Sebastian Lague!
-	int VertexIndex = 0;
-	for(int x = 0; x < ChunkSize; x++)
+	const int MeshSimplificationIncrement = LOD == 0 ? 1 : LOD * 2;
+	const int VerticesPerLine = (ChunkSize - 1) / MeshSimplificationIncrement + 1;
+	const int TriangleParallelPoint = ChunkSize * MeshSimplificationIncrement;
+	
+	int VertexIndex = 0; //the current anchor point for drawing the triangle
+	int VertexLine = 0; //the current line for vertexIndex
+
+	for(int x = 0; x<ChunkSize; x+=MeshSimplificationIncrement)
 	{
-		for(int y = 0; y< ChunkSize; y++)
+		for(int y=0; y< ChunkSize; y+=MeshSimplificationIncrement)
 		{
 			//Create a rectangle from 2 triangles (CCW)
-			if(x < ChunkSize-1 && y < ChunkSize-1)
+			if(x <ChunkSize -1 && y <ChunkSize -1)
 			{
 				Triangles.Add(VertexIndex); //top left first triangle
-				Triangles.Add(VertexIndex + ChunkSize + 1); // bottom right first triangle
-				Triangles.Add(VertexIndex + ChunkSize); // bottom left first triangle
-				
-				Triangles.Add(VertexIndex + ChunkSize + 1); //bottom right second triangle
+				Triangles.Add(VertexIndex + TriangleParallelPoint + MeshSimplificationIncrement); // bottom right first triangle
+				Triangles.Add(VertexIndex + TriangleParallelPoint); // bottom left first triangle
+					
+				Triangles.Add(VertexIndex + TriangleParallelPoint + MeshSimplificationIncrement); //bottom right second triangle
 				Triangles.Add(VertexIndex); //top left second triangle
-				Triangles.Add(VertexIndex + 1); // top right second triangle
+				Triangles.Add(VertexIndex + MeshSimplificationIncrement); // top right second triangle
 			}
-
-			VertexIndex++;
+			VertexIndex+=MeshSimplificationIncrement;
 		}
+		VertexIndex = TriangleParallelPoint * (VertexLine+1);
+		VertexLine++;
 	}
 }
 
