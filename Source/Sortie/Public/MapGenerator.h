@@ -24,10 +24,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
-	int XSize = 0; //init x-axis number of squares
-
-	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
-	int YSize = 0; //init y-axis number of squares
+	int ChunkSize = 0; //number of squares matrix
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	float ZMultiplier = 1.0f; //amplitude enhance of the height map

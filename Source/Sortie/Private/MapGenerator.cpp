@@ -49,9 +49,9 @@ void AMapGenerator::CreateVertices()
 		OctaveOffsets.Add(FVector2D(OffsetX, OffsetY));
 	}
 	
-	for(int x=0; x < XSize; x++)
+	for(int x=0; x < ChunkSize; x++)
 	{
-		for(int y=0; y < YSize; y++)
+		for(int y=0; y < ChunkSize; y++)
 		{
 			//we're going to use this for sampling the octaves together
 			float Amplitude = 1.0f;
@@ -92,18 +92,18 @@ void AMapGenerator::CreateTriangles()
 {
 	//Credit: Sebastian Lague!
 	int VertexIndex = 0;
-	for(int x = 0; x < XSize; x++)
+	for(int x = 0; x < ChunkSize; x++)
 	{
-		for(int y = 0; y< YSize; y++)
+		for(int y = 0; y< ChunkSize; y++)
 		{
 			//Create a rectangle from 2 triangles (CCW)
-			if(x < XSize-1 && y < YSize-1)
+			if(x < ChunkSize-1 && y < ChunkSize-1)
 			{
 				Triangles.Add(VertexIndex); //top left first triangle
-				Triangles.Add(VertexIndex + YSize + 1); // bottom right first triangle
-				Triangles.Add(VertexIndex + YSize); // bottom left first triangle
+				Triangles.Add(VertexIndex + ChunkSize + 1); // bottom right first triangle
+				Triangles.Add(VertexIndex + ChunkSize); // bottom left first triangle
 				
-				Triangles.Add(VertexIndex + YSize + 1); //bottom right second triangle
+				Triangles.Add(VertexIndex + ChunkSize + 1); //bottom right second triangle
 				Triangles.Add(VertexIndex); //top left second triangle
 				Triangles.Add(VertexIndex + 1); // top right second triangle
 			}
