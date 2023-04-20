@@ -69,7 +69,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void CreateProceduralTerrainChunk();
-	void SetVisible(bool hidden);
+	void CheckVisible();
+	void SetVisible(bool Visible);
 
 private:
 	UProceduralMeshComponent* ProceduralMesh;

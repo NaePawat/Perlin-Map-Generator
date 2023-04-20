@@ -11,7 +11,7 @@
 AMapGenerator::AMapGenerator()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	ProceduralMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProceduralMesh");
 	SetRootComponent(ProceduralMesh);
@@ -25,18 +25,15 @@ void AMapGenerator::BeginPlay()
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
 	CreateProceduralTerrainChunk();
 	
-	//SetActorHiddenInGame(false); //On Initialize, let's hide it first, then we'll use update to check the position of the player
+	//SetVisible(false); //On Initialize, let's hide it first, then we'll use update to check the position of the player
+	//CheckVisible();
 }
 
 // Called every frame
 void AMapGenerator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	/*const FVector ViewerLoc = Viewer->GetActorLocation();
-	const FVector2D ViewerPos = FVector2D(ViewerLoc.X, ViewerLoc.Y);
-	const float ViewerDistanceFromNearestEdge = FMath::Sqrt();
-	SetVisible(ViewerDistanceFromNearestEdge <= Viewer->MaxViewDistance);*/
+	CheckVisible();
 }
 
 void AMapGenerator::CreateProceduralTerrainChunk()
@@ -48,9 +45,19 @@ void AMapGenerator::CreateProceduralTerrainChunk()
 	ProceduralMesh->SetMaterial(0, Material);
 }
 
-void AMapGenerator::SetVisible(bool hidden)
+void AMapGenerator::CheckVisible()
 {
-	SetActorHiddenInGame(hidden);
+	const FVector ViewerLoc = Viewer->GetActorLocation();
+	FVector MapBoundExtent;
+	FVector MapBoundOrigin;
+	GetActorBounds(false, MapBoundOrigin, MapBoundExtent);
+	const float ViewerDistanceFromNearestEdge = FMath::Min(FVector::Dist2D(ViewerLoc, MapBoundOrigin), FVector::Dist2D(ViewerLoc, MapBoundExtent));
+	SetVisible(ViewerDistanceFromNearestEdge <= Viewer->MaxViewDistance * Scale); //need to * scale to make the view and mapGen have the same scale
+}
+
+void AMapGenerator::SetVisible(bool Visible)
+{
+	SetActorHiddenInGame(!Visible);
 }
 
 //Function for creating a random perlin noise map

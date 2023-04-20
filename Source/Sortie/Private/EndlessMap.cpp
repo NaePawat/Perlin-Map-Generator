@@ -20,10 +20,6 @@ void AEndlessMap::BeginPlay()
 	Super::BeginPlay();
 
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
-	if(!Viewer)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No character was spawn at player start!"));
-	}
 	
 	if(const AMapGenerator* MapChunk = Cast<AMapGenerator>(MapGen->GetDefaultObject()))
 	{
@@ -34,9 +30,6 @@ void AEndlessMap::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkScale: %f"), ChunkScale);
 		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkVisibleDst: %d"), ChunkVisibleInViewDst);
 	}
-
-	//For debugging only
-	UpdateVisibleChunk();
 }
 
 // Called every frame
@@ -44,15 +37,13 @@ void AEndlessMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//UpdateVisibleChunk();
+	UpdateVisibleChunk();
 }
 
 void AEndlessMap::UpdateVisibleChunk()
 {
 	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
 	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / (ChunkSize * ChunkScale));
-	UE_LOG(LogTemp, Warning, TEXT("Actor Location: %f %f"), Viewer->GetActorLocation().X, Viewer->GetActorLocation().Y);
-
 	for(int YOffset = -ChunkVisibleInViewDst; YOffset <= ChunkVisibleInViewDst ; YOffset++)
 	{
 		for(int XOffset = -ChunkVisibleInViewDst; XOffset <=ChunkVisibleInViewDst; XOffset++)
