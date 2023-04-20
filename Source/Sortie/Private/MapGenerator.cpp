@@ -24,8 +24,7 @@ void AMapGenerator::BeginPlay()
 
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
 	CreateProceduralTerrainChunk();
-
-	//TODO: Make a perlin offset 
+	
 	//SetActorHiddenInGame(false); //On Initialize, let's hide it first, then we'll use update to check the position of the player
 }
 
@@ -46,8 +45,6 @@ void AMapGenerator::CreateProceduralTerrainChunk()
 	CreateTriangles();
 	
 	ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	UE_LOG(LogTemp, Warning, TEXT("current total vertices: %d"), Vertices.Num());
-	UE_LOG(LogTemp, Warning, TEXT("current total triangles: %d"), Triangles.Num());
 	ProceduralMesh->SetMaterial(0, Material);
 }
 
@@ -59,6 +56,7 @@ void AMapGenerator::SetVisible(bool hidden)
 //Function for creating a random perlin noise map
 void AMapGenerator::CreateVertices()
 {
+	const FVector MapLoc = GetActorLocation();
 	const FRandomStream* RandomStream = new FRandomStream(Seed);
 	TArray<FVector2D> OctaveOffsets;
 
@@ -81,8 +79,8 @@ void AMapGenerator::CreateVertices()
 			//loop through all octaves and sample it to correct height
 			for(int i = 0; i < Octaves ; i++)
 			{
-				const float SampleX = x / NoiseScale * Frequency + OctaveOffsets[i].X;
-				const float SampleY = y / NoiseScale * Frequency + OctaveOffsets[i].Y;
+				const float SampleX = (x + MapLoc.X/Scale)/ NoiseScale * Frequency + OctaveOffsets[i].X * Frequency;
+				const float SampleY = (y + MapLoc.Y/Scale)/ NoiseScale * Frequency + OctaveOffsets[i].Y * Frequency;
 
 				const float PerlinValue = FMath::PerlinNoise2D(FVector2D(SampleX, SampleY)); // * 2 - 1 so the value of the perlin is not negative
 				NoiseHeight += PerlinValue * Amplitude;

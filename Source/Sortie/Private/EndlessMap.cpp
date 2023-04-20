@@ -31,8 +31,12 @@ void AEndlessMap::BeginPlay()
 		ChunkScale = MapChunk->Scale;
 		ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
 		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkSize: %d"), ChunkSize);
+		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkScale: %f"), ChunkScale);
 		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkVisibleDst: %d"), ChunkVisibleInViewDst);
 	}
+
+	//For debugging only
+	UpdateVisibleChunk();
 }
 
 // Called every frame
@@ -45,8 +49,9 @@ void AEndlessMap::Tick(float DeltaTime)
 
 void AEndlessMap::UpdateVisibleChunk()
 {
-	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / ChunkSize);
-	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / ChunkSize);
+	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
+	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / (ChunkSize * ChunkScale));
+	UE_LOG(LogTemp, Warning, TEXT("Actor Location: %f %f"), Viewer->GetActorLocation().X, Viewer->GetActorLocation().Y);
 
 	for(int YOffset = -ChunkVisibleInViewDst; YOffset <= ChunkVisibleInViewDst ; YOffset++)
 	{
@@ -65,7 +70,6 @@ void AEndlessMap::UpdateVisibleChunk()
 				AMapGenerator* NewMapChunk = GetWorld()->SpawnActor<AMapGenerator>(MapGen, SpawnTransform,SpawnInfo);
 				
 				UE_LOG(LogTemp, Warning, TEXT("Spawn Loc: %d %d"), static_cast<int>(ViewedChunkCoord.X * ChunkSize * ChunkScale), static_cast<int>(ViewedChunkCoord.Y * ChunkSize * ChunkScale));
-				//NewMapChunk->SetVisible(true);
 				MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
 			}
 		}
