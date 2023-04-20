@@ -2,8 +2,10 @@
 
 
 #include "MapGenerator.h"
+#include "Kismet/GameplayStatics.h"
 #include "Math/RandomStream.h"
 #include "ProceduralMeshComponent.h"
+#include "SortieCharacterBase.h"
 
 // Sets default values
 AMapGenerator::AMapGenerator()
@@ -12,14 +14,19 @@ AMapGenerator::AMapGenerator()
 	PrimaryActorTick.bCanEverTick = false;
 
 	ProceduralMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProceduralMesh");
-	ProceduralMesh->SetupAttachment(GetRootComponent());
+	SetRootComponent(ProceduralMesh);
 }
 
 // Called when the game starts or when spawned
 void AMapGenerator::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
 	CreateProceduralTerrainChunk();
+
+	//TODO: Make a perlin offset 
+	//SetActorHiddenInGame(false); //On Initialize, let's hide it first, then we'll use update to check the position of the player
 }
 
 // Called every frame
@@ -27,6 +34,10 @@ void AMapGenerator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	/*const FVector ViewerLoc = Viewer->GetActorLocation();
+	const FVector2D ViewerPos = FVector2D(ViewerLoc.X, ViewerLoc.Y);
+	const float ViewerDistanceFromNearestEdge = FMath::Sqrt();
+	SetVisible(ViewerDistanceFromNearestEdge <= Viewer->MaxViewDistance);*/
 }
 
 void AMapGenerator::CreateProceduralTerrainChunk()
@@ -38,6 +49,11 @@ void AMapGenerator::CreateProceduralTerrainChunk()
 	UE_LOG(LogTemp, Warning, TEXT("current total vertices: %d"), Vertices.Num());
 	UE_LOG(LogTemp, Warning, TEXT("current total triangles: %d"), Triangles.Num());
 	ProceduralMesh->SetMaterial(0, Material);
+}
+
+void AMapGenerator::SetVisible(bool hidden)
+{
+	SetActorHiddenInGame(hidden);
 }
 
 //Function for creating a random perlin noise map
@@ -75,6 +91,7 @@ void AMapGenerator::CreateVertices()
 
 				Amplitude *= Persistance;
 				Frequency *= Lacunarity;
+				
 			}
 
 			const float z = NoiseHeight * ZMultiplier >= ZMultiplier / FlatLandThreshold ?

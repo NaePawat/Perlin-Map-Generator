@@ -51,7 +51,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="View Helper")
+	float MaxViewDistance = 300.f;
+	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

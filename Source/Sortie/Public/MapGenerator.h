@@ -7,6 +7,7 @@
 #include "MapGenerator.generated.h"
 
 //forward declaration
+class ASortieCharacterBase;
 class UProceduralMeshComponent;
 class UMaterialInterface;
 
@@ -20,9 +21,6 @@ public:
 	AMapGenerator();
 
 protected:
-
-	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 241))
-	int ChunkSize = 0; //number of squares matrix (recommend base 2 divisible)
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	float ZMultiplier = 1.0f; //amplitude enhance of the height map
@@ -41,30 +39,37 @@ protected:
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	float Lacunarity = 0.0f; //control increase in frequency of the octave
-	
-	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
-	float Scale = 0; //the triangle mesh's size
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
 	float UVScale = 0; 
 
 	UPROPERTY(EditAnywhere)
 	int Seed = 0;
-
-	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 6))
-	int LOD = 0;
 	
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material; // material applied to the generated mesh
 
+	ASortieCharacterBase* Viewer;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-public:	
+public:
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
+	float Scale = 0; //the triangle mesh's size
+	
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 241))
+	int ChunkSize = 241; //number of squares matrix (recommend base 2 divisible)
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 6))
+	int LOD = 0;
+	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	void CreateProceduralTerrainChunk();
+	void SetVisible(bool hidden);
 
 private:
 	UProceduralMeshComponent* ProceduralMesh;
