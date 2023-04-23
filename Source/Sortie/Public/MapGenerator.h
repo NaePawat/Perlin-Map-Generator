@@ -26,7 +26,7 @@ protected:
 	float ZMultiplier = 1.0f; //amplitude enhance of the height map
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1))
-	float FlatLandThreshold = 1.0f;
+	float FlatLandThreshold = 1.0f; //The minimum amplitude to escape from flattening
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	float NoiseScale = 1.0f; //the scale of perlin noise grain
@@ -41,14 +41,15 @@ protected:
 	float Lacunarity = 0.0f; //control increase in frequency of the octave
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
-	float UVScale = 0; 
+	float UVScale = 0; //the density of the UV
 
 	UPROPERTY(EditAnywhere)
-	int Seed = 0;
+	int Seed = 0; //a seed for randomize the same result
 	
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material; // material applied to the generated mesh
 
+	UPROPERTY()
 	ASortieCharacterBase* Viewer;
 
 	// Called when the game starts or when spawned
@@ -73,6 +74,7 @@ public:
 	void SetVisible(bool Visible);
 
 private:
+	UPROPERTY()
 	UProceduralMeshComponent* ProceduralMesh;
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;
