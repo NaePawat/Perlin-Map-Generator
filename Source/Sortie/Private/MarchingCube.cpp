@@ -46,13 +46,15 @@ void AMarchingCube::Tick(float DeltaTime)
 
 void AMarchingCube::CreateProceduralMarchingCubesChunk()
 {
-	MakeGrid();
-	Noise3D();
+	MakeGridWithNoise();
 	March();
 }
 
-void AMarchingCube::MakeGrid()
+void AMarchingCube::MakeGridWithNoise()
 {
+	//check chunk location for sampling the noise
+	const FVector MapLoc = GetActorLocation();
+	
 	//add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
 	for(int x = 0; x < ChunkSize; x++)
 	{
@@ -62,20 +64,26 @@ void AMarchingCube::MakeGrid()
 			FGridArray1D GridZ;
 			for(int z = 0; z < ChunkHeight; z++)
 			{
-				GridZ.Grids.Add(FGridPoint(FVector(x*Scale, y*Scale, z*Scale), false));
+				//Perlin Noise 3D
+				const float SampleX = (x + MapLoc.X/Scale) / NoiseScale;
+				const float SampleY = (y + MapLoc.Y/Scale) / NoiseScale;
+				const float SampleZ = (z + MapLoc.Z/Scale) / NoiseScale;
+
+				const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
+
+				UE_LOG(LogTemp, Warning, TEXT("Perlin Value: %f %f %f --> %f"), SampleX, SampleY, SampleZ, PerlinValue);
+				GridZ.Grids.Add(FGridPoint(FVector(x*Scale, y*Scale, z*Scale), PerlinValue >= NoiseThreshold));
+				DrawDebugSphere(GetWorld(), FVector(x * Scale, y * Scale, z*Scale), 10.0f, 16, PerlinValue >= NoiseThreshold ? FColor::Green : FColor::Red, true, -1.0f, 0u, 0.0f);
 			}
 			GridY.Grids.Add(GridZ);
 		}
 		GridPoints.Grids.Add(GridY);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Assign Grid Pos: %s"), *GridPoints.Grids[ChunkSize-1].Grids[ChunkSize-1].Grids[ChunkHeight-1].GetPosition().ToString());
 }
 
-void AMarchingCube::Noise3D()
-{
-}
-
+// Marching the cube, full speed ahead!
 void AMarchingCube::March()
 {
+	
 }
 

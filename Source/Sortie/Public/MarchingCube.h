@@ -83,6 +83,9 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
 	float NoiseThreshold = 0.f;
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
+	float NoiseScale = 1.0f;
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
 	float Scale = 1.f;
@@ -97,7 +100,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void CreateProceduralMarchingCubesChunk();
-	void MakeGrid();
-	void Noise3D();
+	void MakeGridWithNoise();
 	void March();
 };
