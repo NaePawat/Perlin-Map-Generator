@@ -1,14 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "MapGenerator.h"
+#include "TerrainChunk.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/RandomStream.h"
 #include "ProceduralMeshComponent.h"
 #include "SortieCharacterBase.h"
 
 // Sets default values
-AMapGenerator::AMapGenerator()
+ATerrainChunk::ATerrainChunk()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -18,7 +18,7 @@ AMapGenerator::AMapGenerator()
 }
 
 // Called when the game starts or when spawned
-void AMapGenerator::BeginPlay()
+void ATerrainChunk::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -30,13 +30,13 @@ void AMapGenerator::BeginPlay()
 }
 
 // Called every frame
-void AMapGenerator::Tick(float DeltaTime)
+void ATerrainChunk::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	CheckVisible();
 }
 
-void AMapGenerator::CreateProceduralTerrainChunk()
+void ATerrainChunk::CreateProceduralTerrainChunk()
 {
 	CreateVertices();
 	CreateTriangles();
@@ -45,7 +45,7 @@ void AMapGenerator::CreateProceduralTerrainChunk()
 	ProceduralMesh->SetMaterial(0, Material);
 }
 
-void AMapGenerator::CheckVisible()
+void ATerrainChunk::CheckVisible()
 {
 	const FVector ViewerLoc = Viewer->GetActorLocation();
 	FVector MapBoundExtent;
@@ -55,13 +55,13 @@ void AMapGenerator::CheckVisible()
 	SetVisible(ViewerDistanceFromNearestEdge <= Viewer->MaxViewDistance * Scale); //need to * scale to make the view and mapGen have the same scale
 }
 
-void AMapGenerator::SetVisible(bool Visible)
+void ATerrainChunk::SetVisible(bool Visible)
 {
 	SetActorHiddenInGame(!Visible);
 }
 
 //Function for creating a random perlin noise map
-void AMapGenerator::CreateVertices()
+void ATerrainChunk::CreateVertices()
 {
 	const FVector MapLoc = GetActorLocation();
 	const FRandomStream* RandomStream = new FRandomStream(Seed);
@@ -112,7 +112,7 @@ void AMapGenerator::CreateVertices()
 	}
 }
 
-void AMapGenerator::CreateTriangles()
+void ATerrainChunk::CreateTriangles()
 {
 	//Credit: Sebastian Lague!
 	const int MeshSimplificationIncrement = LOD == 0 ? 1 : LOD * 2;

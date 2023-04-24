@@ -7,7 +7,7 @@
 #include "EndlessMap.generated.h"
 
 //forward declaration
-class AMapGenerator;
+class ATerrainChunk;
 class ASortieCharacterBase;
 
 UCLASS()
@@ -25,12 +25,12 @@ protected:
 	ASortieCharacterBase* Viewer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Endless Components")
-	TSubclassOf<AMapGenerator> MapGen;
+	TSubclassOf<ATerrainChunk> MapGen;
 
 	int ChunkSize = 0;
 	float ChunkScale = 0;
 	int ChunkVisibleInViewDst = 0;
-	TMap<FVector2D, AMapGenerator*> MapChunkDict;
+	TMap<FVector2D, ATerrainChunk*> MapChunkDict;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

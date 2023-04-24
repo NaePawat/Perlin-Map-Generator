@@ -3,8 +3,8 @@
 
 #include "EndlessMap.h"
 #include "Kismet/GameplayStatics.h"
-#include "MapGenerator.h"
 #include "SortieCharacterBase.h"
+#include "TerrainChunk.h"
 
 // Sets default values
 AEndlessMap::AEndlessMap()
@@ -21,7 +21,7 @@ void AEndlessMap::BeginPlay()
 
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
 	
-	if(const AMapGenerator* MapChunk = Cast<AMapGenerator>(MapGen->GetDefaultObject()))
+	if(const ATerrainChunk* MapChunk = Cast<ATerrainChunk>(MapGen->GetDefaultObject()))
 	{
 		ChunkSize = MapChunk->ChunkSize - 1;
 		ChunkScale = MapChunk->Scale;
@@ -58,7 +58,7 @@ void AEndlessMap::UpdateVisibleChunk()
 				FTransform SpawnTransform;
 				FActorSpawnParameters SpawnInfo;
 				SpawnTransform.SetLocation(FVector(ViewedChunkCoord.X*ChunkSize*ChunkScale, ViewedChunkCoord.Y*ChunkSize*ChunkScale,0));
-				AMapGenerator* NewMapChunk = GetWorld()->SpawnActor<AMapGenerator>(MapGen, SpawnTransform,SpawnInfo);
+				ATerrainChunk* NewMapChunk = GetWorld()->SpawnActor<ATerrainChunk>(MapGen, SpawnTransform,SpawnInfo);
 				
 				//UE_LOG(LogTemp, Warning, TEXT("Spawn Loc: %d %d"), static_cast<int>(ViewedChunkCoord.X * ChunkSize * ChunkScale), static_cast<int>(ViewedChunkCoord.Y * ChunkSize * ChunkScale));
 				MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);

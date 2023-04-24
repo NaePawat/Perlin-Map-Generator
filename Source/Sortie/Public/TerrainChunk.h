@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "MapGenerator.generated.h"
+#include "TerrainChunk.generated.h"
 
 //forward declaration
 class ASortieCharacterBase;
@@ -12,13 +12,13 @@ class UProceduralMeshComponent;
 class UMaterialInterface;
 
 UCLASS()
-class SORTIE_API AMapGenerator : public AActor
+class SORTIE_API ATerrainChunk : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AMapGenerator();
+	ATerrainChunk();
 
 protected:
 
