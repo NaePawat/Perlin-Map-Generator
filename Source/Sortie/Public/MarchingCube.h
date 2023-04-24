@@ -8,6 +8,8 @@
 
 //forward declaration
 class ASortieCharacterBase;
+class UProceduralMeshComponent;
+class UMaterialInterface;
 
 //#region Helper Classes
 class FGridPoint
@@ -42,6 +44,38 @@ public:
 	{
 		On = NewOnState;
 	}
+};
+
+class FCube
+{
+	//The cube that we're creating, it should looks like this:
+	/*      4 ------ 5
+	 *      |        |
+	 *      | 7 ------- 6
+	 *      | |      |  |
+	 *      0 | ---- 1  |
+	 *        |         |
+	 *        3 ------- 2
+	*/
+	
+public:
+	//Constructor
+	FCube();
+	FCube(
+		const FGridPoint& PosZero,
+		const FGridPoint& PosOne,
+		const FGridPoint& PosTwo,
+		const FGridPoint& PosThree,
+		const FGridPoint& PosFour,
+		const FGridPoint& PosFive,
+		const FGridPoint& PosSix,
+		const FGridPoint& PosSeven
+		);
+	~FCube();
+
+	TArray<FGridPoint> Points;
+	int Config = 0;
+	int CalculateConfig();
 };
 //#endregion
 
@@ -89,12 +123,18 @@ public:
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
 	float Scale = 1.f;
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
+	float UVScale = 1.f;
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
 	int ChunkSize = 1;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1))
 	int ChunkHeight = 1;
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* Material;
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -102,4 +142,13 @@ public:
 	void CreateProceduralMarchingCubesChunk();
 	void MakeGridWithNoise();
 	void March();
+
+private:
+	UPROPERTY()
+	UProceduralMeshComponent* ProceduralMesh;
+	TArray<FVector> Vertices;
+	TArray<int> Triangles;
+	TArray<FVector2D> UV0;
+
+	void CreateVertex(const FVector& CornerIndexA, const FVector& CornerIndexB);
 };

@@ -26,9 +26,9 @@ void AEndlessMap::BeginPlay()
 		ChunkSize = MapChunk->ChunkSize - 1;
 		ChunkScale = MapChunk->Scale;
 		ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
-		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkSize: %d"), ChunkSize);
+		/*UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkSize: %d"), ChunkSize);
 		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkScale: %f"), ChunkScale);
-		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkVisibleDst: %d"), ChunkVisibleInViewDst);
+		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkVisibleDst: %d"), ChunkVisibleInViewDst);*/
 	}
 }
 
@@ -60,7 +60,7 @@ void AEndlessMap::UpdateVisibleChunk()
 				SpawnTransform.SetLocation(FVector(ViewedChunkCoord.X*ChunkSize*ChunkScale, ViewedChunkCoord.Y*ChunkSize*ChunkScale,0));
 				AMapGenerator* NewMapChunk = GetWorld()->SpawnActor<AMapGenerator>(MapGen, SpawnTransform,SpawnInfo);
 				
-				UE_LOG(LogTemp, Warning, TEXT("Spawn Loc: %d %d"), static_cast<int>(ViewedChunkCoord.X * ChunkSize * ChunkScale), static_cast<int>(ViewedChunkCoord.Y * ChunkSize * ChunkScale));
+				//UE_LOG(LogTemp, Warning, TEXT("Spawn Loc: %d %d"), static_cast<int>(ViewedChunkCoord.X * ChunkSize * ChunkScale), static_cast<int>(ViewedChunkCoord.Y * ChunkSize * ChunkScale));
 				MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
 			}
 		}
