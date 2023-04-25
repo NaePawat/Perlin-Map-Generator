@@ -8,9 +8,6 @@
 #include "SortieCharacterBase.h"
 
 //#region Helper Classes
-/**
- * Cube class is a combination of Grid class at 8 points to create a cube, and record the cube configuration
- */
 FCube::FCube()
 {
 	Points.Add({FVector(0,0,0), 0.f, false});

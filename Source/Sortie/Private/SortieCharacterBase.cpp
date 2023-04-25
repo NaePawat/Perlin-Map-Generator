@@ -6,9 +6,11 @@
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "MarchingCube.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values
 ASortieCharacterBase::ASortieCharacterBase()
@@ -59,6 +61,48 @@ void ASortieCharacterBase::Look(const FInputActionValue& Value)
 	}
 }
 
+void ASortieCharacterBase::Fire()
+{
+	if(!IsFiring)
+	{
+		TArray<AActor*> IgnoreActor;
+		IgnoreActor.Init(this, 1);
+		
+		FHitResult HitResult;
+		
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+		
+		FVector TraceStart = CameraComp->GetComponentLocation();
+		FVector TraceEnd = CameraComp->GetComponentLocation() + CameraComp->GetComponentRotation().Vector() * LineTraceDistance;
+
+		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, HitResult.bBlockingHit ? FColor::Blue : FColor::Red, false, 5.0f, 0, 10.0f);
+		
+		FVector SphereSpawnPoint = HitResult.ImpactPoint;
+
+		//Set what actor to seek out from it's collision channel
+		TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
+		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility));
+		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+
+		TArray<AActor*> OutActors;
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SphereSpawnPoint, SphereRadius, TraceObjectTypes, AMarchingCube::StaticClass(), IgnoreActor, OutActors);
+		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, true, -1.f, 0u, 0.f);
+		for(AActor* Actor: OutActors)
+		{
+			UE_LOG(LogTemp, Warning,TEXT("Impact Actor: %s"), *Actor->GetActorNameOrLabel());
+		}
+
+		IsFiring = true;
+	}
+}
+
+void ASortieCharacterBase::StopFire()
+{
+	IsFiring = false;
+}
+
 // Called when the game starts or when spawned
 void ASortieCharacterBase::BeginPlay()
 {
@@ -92,6 +136,8 @@ void ASortieCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this,&ASortieCharacterBase::MoveForward);
 		EnhancedInputComponent->BindAction(MoveRightAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::MoveRight);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Look);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Fire);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopFire);
 	}
 
 }

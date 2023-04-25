@@ -42,10 +42,25 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* LookAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* FireAction;
+
+	bool IsFiring = false;
 	
 	void MoveForward(const FInputActionValue& Value);
 	void MoveRight(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	void Fire();
+	void StopFire();
+	//#endregion
+
+	//#region Terrain Editing
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
+	float LineTraceDistance = 1000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
+	float SphereRadius = 1.f;
 	//#endregion
 	
 	// Called when the game starts or when spawned

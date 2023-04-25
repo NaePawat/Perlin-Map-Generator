@@ -12,6 +12,13 @@ class UProceduralMeshComponent;
 class UMaterialInterface;
 
 //#region Structs
+struct FGridPoint
+{
+	FVector Position;
+	float Value;
+	bool On;
+};
+
 struct FGridArray1D
 {
 	TArray<FGridPoint> Grids;
@@ -26,16 +33,12 @@ struct FGridArray3D
 {
 	TArray<FGridArray2D> Grids;
 };
-
-struct FGridPoint
-{
-	FVector Position;
-	float Value;
-	bool On;
-};
 //#endregion
 
 //#region Helper Classes
+/**
+ * Cube class is a combination of Grid class at 8 points to create a cube, and record the cube configuration
+ */
 class FCube
 {
 	//The cube that we're creating, it should looks like this:
@@ -89,22 +92,25 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
-	float NoiseThreshold = 0.f;
+	float NoiseThreshold = 0.f;//minimum value for the GridPoint to turns on
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
-	float NoiseScale = 1.0f;
+	float NoiseScale = 1.0f;//the scale of perlin noise grain
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
-	float Scale = 1.f;
+	float Scale = 1.f;// the triangle mesh's size
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
-	float UVScale = 1.f;
+	float UVScale = 1.f;//the density of the UV
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
-	int ChunkSize = 1;
+	int ChunkSize = 1; //on first load chunk's size
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1))
-	int ChunkHeight = 1;
+	int ChunkHeight = 1; //on first load chunk's height
+
+	UPROPERTY(EditAnywhere)
+	int Seed = 0; //a seed for randomize the same result
 
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material;
