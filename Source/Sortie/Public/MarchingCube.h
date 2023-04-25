@@ -11,41 +11,31 @@ class ASortieCharacterBase;
 class UProceduralMeshComponent;
 class UMaterialInterface;
 
-//#region Helper Classes
-class FGridPoint
+//#region Structs
+struct FGridArray1D
 {
-public:
-	//Constructor
-	FGridPoint();
-	FGridPoint(const FVector& Position, const bool& On);
-	~FGridPoint();
-	
-protected:
-	FVector Position;
-	bool On;
-
-public:
-	FVector GetPosition() const
-	{
-		return Position;
-	}
-
-	bool GetOn() const
-	{
-		return On;
-	}
-
-	void SetPosition(const FVector& NewPosition)
-	{
-		Position = NewPosition;
-	}
-
-	void SetOn(const bool& NewOnState)
-	{
-		On = NewOnState;
-	}
+	TArray<FGridPoint> Grids;
 };
 
+struct FGridArray2D
+{
+	TArray<FGridArray1D> Grids;
+};
+
+struct FGridArray3D
+{
+	TArray<FGridArray2D> Grids;
+};
+
+struct FGridPoint
+{
+	FVector Position;
+	float Value;
+	bool On;
+};
+//#endregion
+
+//#region Helper Classes
 class FCube
 {
 	//The cube that we're creating, it should looks like this:
@@ -76,23 +66,6 @@ public:
 	TArray<FGridPoint> Points;
 	int Config = 0;
 	int CalculateConfig();
-};
-//#endregion
-
-//#region Structs
-struct FGridArray1D
-{
-	TArray<FGridPoint> Grids;
-};
-
-struct FGridArray2D
-{
-	TArray<FGridArray1D> Grids;
-};
-
-struct FGridArray3D
-{
-	TArray<FGridArray2D> Grids;
 };
 //#endregion
 
@@ -150,5 +123,6 @@ private:
 	TArray<int> Triangles;
 	TArray<FVector2D> UV0;
 
-	void CreateVertex(const FVector& CornerIndexA, const FVector& CornerIndexB);
+	FVector InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const;
+	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB);
 };

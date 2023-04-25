@@ -8,37 +8,19 @@
 #include "SortieCharacterBase.h"
 
 //#region Helper Classes
-
-/**
- * Grid class for a single vertex position, determine whether that position is marked as turn on or not
- */
-FGridPoint::FGridPoint()
-{
-	Position = FVector(0,0,0);
-	On = false;
-}
-
-FGridPoint::FGridPoint(const FVector& Position, const bool& On): Position(Position), On(On)
-{
-}
-
-FGridPoint::~FGridPoint()
-{
-}
-
 /**
  * Cube class is a combination of Grid class at 8 points to create a cube, and record the cube configuration
  */
 FCube::FCube()
 {
-	Points.Add(FGridPoint(FVector(0,0,0), false));
-	Points.Add(FGridPoint(FVector(1,0,0), false));
-	Points.Add(FGridPoint(FVector(1,1,0), false));
-	Points.Add(FGridPoint(FVector(0,1,0), false));
-	Points.Add(FGridPoint(FVector(0,0,1), false));
-	Points.Add(FGridPoint(FVector(1,0,1), false));
-	Points.Add(FGridPoint(FVector(1,1,1), false));
-	Points.Add(FGridPoint(FVector(0,1,1), false));
+	Points.Add({FVector(0,0,0), 0.f, false});
+	Points.Add({FVector(1,0,0), 0.f, false});
+	Points.Add({FVector(1,1,0), 0.f,false});
+	Points.Add({FVector(0,1,0), 0.f, false});
+	Points.Add({FVector(0,0,1), 0.f, false});
+	Points.Add({FVector(1,0,1), 0.f, false});
+	Points.Add({FVector(1,1,1), 0.f, false});
+	Points.Add({FVector(0,1,1), 0.f, false});
 	Config = 0;
 }
 
@@ -63,14 +45,14 @@ FCube::~FCube()
 
 int FCube::CalculateConfig()
 {
-	Config += Points[0].GetOn() ? 1 : 0;
-	Config += Points[1].GetOn() ? 2 : 0;
-	Config += Points[2].GetOn() ? 4 : 0;
-	Config += Points[3].GetOn() ? 8 : 0;
-	Config += Points[4].GetOn() ? 16 : 0;
-	Config += Points[5].GetOn() ? 32 : 0;
-	Config += Points[6].GetOn() ? 64 : 0;
-	Config += Points[7].GetOn() ? 128 : 0;
+	Config += Points[0].On ? 1 : 0;
+	Config += Points[1].On ? 2 : 0;
+	Config += Points[2].On ? 4 : 0;
+	Config += Points[3].On ? 8 : 0;
+	Config += Points[4].On ? 16 : 0;
+	Config += Points[5].On ? 32 : 0;
+	Config += Points[6].On ? 64 : 0;
+	Config += Points[7].On ? 128 : 0;
 	
 	return Config;
 }
@@ -102,10 +84,25 @@ void AMarchingCube::Tick(float DeltaTime)
 
 }
 
-void AMarchingCube::CreateVertex(const FVector& CornerIndexA, const FVector& CornerIndexB)
+FVector AMarchingCube::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const
+{
+	if(FMath::IsNearlyZero(NoiseThreshold - CornerIndexA.Value)) return CornerIndexA.Position;
+	if(FMath::IsNearlyZero(NoiseThreshold - CornerIndexB.Value)) return CornerIndexB.Position;
+	if(FMath::IsNearlyZero(CornerIndexA.Value - CornerIndexB.Value)) return CornerIndexA.Position;
+
+	const float Mu = (NoiseThreshold - CornerIndexA.Value) / (CornerIndexB.Value - CornerIndexA.Value);
+
+	return FVector(
+		CornerIndexA.Position.X + Mu * (CornerIndexB.Position.X - CornerIndexA.Position.X),
+		CornerIndexA.Position.Y + Mu * (CornerIndexB.Position.Y - CornerIndexA.Position.Y),
+		CornerIndexA.Position.Z + Mu * (CornerIndexB.Position.Z - CornerIndexA.Position.Z)
+	);
+}
+
+void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB)
 {
 	//Let's make it normal for now the mid point between the corner
-	const FVector VertexPos = (CornerIndexA + CornerIndexB) / 2;
+	const FVector VertexPos = InterpolateEdgePosition(CornerGridA, CornerGridB);
 	Vertices.Add(VertexPos);
 	UV0.Add(FVector2D(VertexPos.X * UVScale / Scale, VertexPos.Y * UVScale / Scale));
 }
@@ -138,7 +135,7 @@ void AMarchingCube::MakeGridWithNoise()
 				const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
 
 				//UE_LOG(LogTemp, Warning, TEXT("Perlin Value: %f %f %f --> %f"), SampleX, SampleY, SampleZ, PerlinValue);
-				GridZ.Grids.Add(FGridPoint(FVector(x*Scale, y*Scale, z*Scale), PerlinValue >= NoiseThreshold));
+				GridZ.Grids.Add({FVector(x*Scale, y*Scale, z*Scale), PerlinValue, PerlinValue >= NoiseThreshold});
 				//DrawDebugSphere(GetWorld(), FVector(x * Scale, y * Scale, z*Scale), 10.0f, 16, PerlinValue >= NoiseThreshold ? FColor::Green : FColor::Red, true, -1.0f, 0u, 0.0f);
 			}
 			GridY.Grids.Add(GridZ);
@@ -190,9 +187,9 @@ void AMarchingCube::March()
 					const int C1 = MarchingConst::CornerIndexBFromEdge[EdgeIndexC];
 
 					//Calculate the position of each vertex
-					CreateVertex(CurrentCube.Points[A0].GetPosition(), CurrentCube.Points[A1].GetPosition());
-					CreateVertex(CurrentCube.Points[B0].GetPosition(), CurrentCube.Points[B1].GetPosition());
-					CreateVertex(CurrentCube.Points[C0].GetPosition(), CurrentCube.Points[C1].GetPosition());
+					CreateVertex(CurrentCube.Points[A0], CurrentCube.Points[A1]);
+					CreateVertex(CurrentCube.Points[B0], CurrentCube.Points[B1]);
+					CreateVertex(CurrentCube.Points[C0], CurrentCube.Points[C1]);
 
 					Triangles.Add(Vertices.Num() - 3);
 					Triangles.Add(Vertices.Num() - 2);
