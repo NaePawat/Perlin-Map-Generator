@@ -4,7 +4,7 @@
 #include "MarchingCube.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
-#include "ProceduralMeshComponent.h"
+#include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
 
 //#region Helper Classes
@@ -62,8 +62,8 @@ AMarchingCube::AMarchingCube()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	ProceduralMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProceduralMesh");
-	SetRootComponent(ProceduralMesh);
+	RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
+	SetRootComponent(RealtimeMesh);
 }
 
 // Called when the game starts or when spawned
@@ -102,6 +102,7 @@ void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint
 	const FVector VertexPos = InterpolateEdgePosition(CornerGridA, CornerGridB);
 	Vertices.Add(VertexPos);
 	UV0.Add(FVector2D(VertexPos.X * UVScale / Scale, VertexPos.Y * UVScale / Scale));
+	Normals.Add(FVector(0.f, 0.f, 1.f));
 }
 
 void AMarchingCube::CreateProceduralMarchingCubesChunk()
@@ -195,27 +196,20 @@ void AMarchingCube::March()
 			}
 		}
 	}
-
-	/*UE_LOG(LogTemp, Warning, TEXT("------------------Vertices------------------"));
-	for(FVector Ver:Vertices)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *Ver.ToString());
-		DrawDebugSphere(GetWorld(), Ver, 10.0f, 16, FColor::Blue, true, -1.0f, 0u, 0.0f);
-
-	}
-	UE_LOG(LogTemp, Warning, TEXT("------------------UV------------------"));
-	for(FVector2D UV:UV0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *UV.ToString());
-	}
-	UE_LOG(LogTemp, Warning, TEXT("------------------Triangles------------------"));
-	for(int Tri:Triangles)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%d"), Tri);
-	}*/
 	
 	//Finished Marching, Let's create a mesh from it
-	ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	ProceduralMesh->SetMaterial(0, Material);
+	//ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	//ProceduralMesh->SetMaterial(0, Material);
+
+	//Runtime Mesh Creation
+	FRealtimeMeshSimpleMeshData MeshData;
+	MeshData.Positions = Vertices;
+	MeshData.Triangles = Triangles;
+	MeshData.UV0 = UV0;
+	MeshData.Normals = Normals;
+	
+	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
+	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
+	Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 }
 

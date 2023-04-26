@@ -30,14 +30,16 @@ protected:
 	int ChunkSize = 0;
 	float ChunkScale = 0;
 	int ChunkVisibleInViewDst = 0;
-	TMap<FVector2D, ATerrainChunk*> MapChunkDict;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	void UpdateVisibleChunk();
 
-public:	
+public:
+	
+	TMap<FVector2D, ATerrainChunk*> MapChunkDict;
+	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

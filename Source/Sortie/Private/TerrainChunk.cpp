@@ -55,7 +55,7 @@ void ATerrainChunk::CheckVisible()
 	SetVisible(ViewerDistanceFromNearestEdge <= Viewer->MaxViewDistance * Scale); //need to * scale to make the view and mapGen have the same scale
 }
 
-void ATerrainChunk::SetVisible(bool Visible)
+void ATerrainChunk::SetVisible(const bool Visible)
 {
 	SetActorHiddenInGame(!Visible);
 }

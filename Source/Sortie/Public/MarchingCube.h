@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "RealtimeMeshActor.h"
+#include "RealtimeMeshSimple.h"
 #include "MarchingCube.generated.h"
 
 //forward declaration
@@ -73,7 +75,7 @@ public:
 //#endregion
 
 UCLASS()
-class SORTIE_API AMarchingCube : public AActor
+class SORTIE_API AMarchingCube : public ARealtimeMeshActor
 {
 	GENERATED_BODY()
 	
@@ -123,11 +125,17 @@ public:
 	void March();
 
 private:
+
 	UPROPERTY()
-	UProceduralMeshComponent* ProceduralMesh;
+	URealtimeMeshComponent* RealtimeMesh;
+
+	UPROPERTY()
+	URealtimeMeshSimple* Mesh;
+	
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;
 	TArray<FVector2D> UV0;
+	TArray<FVector> Normals;
 
 	FVector InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const;
 	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB);
