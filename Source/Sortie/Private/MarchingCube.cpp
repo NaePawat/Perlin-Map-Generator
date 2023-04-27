@@ -100,6 +100,13 @@ FVector AMarchingCube::InterpolateEdgePosition(const FGridPoint& CornerIndexA, c
 	);
 }
 
+float AMarchingCube::SmoothStep(const float MinValue, const float MaxValue, const float Dist)
+{
+	//interpolation function = -2x^3 + 3x^2
+	const float DistMu = (Dist - MinValue) / (MaxValue - MinValue);
+	return DistMu * Dist / MinValue * 100;
+}
+
 void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc)
 {
 	//Let's make it normal for now the mid point between the corner
@@ -257,16 +264,13 @@ void AMarchingCube::Terraform(const FVector& HitLoc, const float SphereRadius, c
 		{
 			for(int z = 0; z<ChunkHeight; z++)
 			{
-				FGridPoint& ChangingGrid = GridPoints.Grids[x].Grids[y].Grids[z];
+				auto& [Position, Value, On] = GridPoints.Grids[x].Grids[y].Grids[z];
 				//the grid is within the change radius, let's update its value
-				if(const float GridDist = FVector::Dist(HitLoc, ChangingGrid.Position); GridDist < SphereRadius)
+				if(const float GridDist = FVector::Dist(HitLoc, Position); GridDist < SphereRadius)
 				{
-					if(ChangingGrid.On)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("GridPos: %s ,%f"), *ChangingGrid.Position.ToString(), ChangingGrid.Value);
-						ChangingGrid.Value -= FMath::Lerp(GridDist, SphereRadius, BrushForce);
-						ChangingGrid.On = ChangingGrid.Value >=NoiseThreshold;
-					}
+					//interpolation function = -2x^3 + 3x^2
+					Value += SmoothStep(SphereRadius, SphereRadius * 0.7, GridDist)*BrushForce;
+					On = Value >= NoiseThreshold;
 				}
 			}
 		}

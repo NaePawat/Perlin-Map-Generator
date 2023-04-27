@@ -143,6 +143,8 @@ private:
 	TArray<FVector> Normals;
 
 	FVector InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const;
+	static float SmoothStep(float MinValue, float MaxValue, float Dist);
+	
 	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc);
 	void CreateMesh();
 	void UpdateMesh();

@@ -46,13 +46,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* FireAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* AimAction;
+
 	bool IsFiring = false;
+	bool IsAiming = false;
 	
 	void MoveForward(const FInputActionValue& Value);
 	void MoveRight(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Fire();
 	void StopFire();
+	void Aim();
+	void StopAim();
 	//#endregion
 
 	//#region Terrain Editing
@@ -63,7 +69,9 @@ protected:
 	float SphereRadius = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
-	float BrushForce = 0.1f;
+	float BrushForce = -1.f;
+
+	void EditTerrain(const bool Add, bool ToggleAction);
 	//#endregion
 	
 	// Called when the game starts or when spawned

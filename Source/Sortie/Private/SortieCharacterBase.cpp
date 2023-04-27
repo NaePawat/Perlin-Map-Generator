@@ -63,22 +63,42 @@ void ASortieCharacterBase::Look(const FInputActionValue& Value)
 
 void ASortieCharacterBase::Fire()
 {
-	if(!IsFiring)
+	EditTerrain(false, IsFiring);
+}
+
+void ASortieCharacterBase::StopFire()
+{
+	IsFiring = false;
+}
+
+void ASortieCharacterBase::Aim()
+{
+	EditTerrain(true, IsAiming);
+}
+
+void ASortieCharacterBase::StopAim()
+{
+	IsAiming = false;
+}
+
+void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
+{
+	if(!ToggleAction)
 	{
 		TArray<AActor*> IgnoreActor;
 		IgnoreActor.Init(this, 1);
-		
+			
 		FHitResult HitResult;
-		
+			
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(this);
-		
+			
 		FVector TraceStart = CameraComp->GetComponentLocation();
 		FVector TraceEnd = CameraComp->GetComponentLocation() + CameraComp->GetComponentRotation().Vector() * LineTraceDistance;
 
 		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, HitResult.bBlockingHit ? FColor::Blue : FColor::Red, false, 5.0f, 0, 1.0f);
-		
+			
 		FVector SphereSpawnPoint = HitResult.ImpactPoint;
 
 		//Set what actor to seek out from it's collision channel
@@ -91,20 +111,14 @@ void ASortieCharacterBase::Fire()
 		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, false, 5.f, 0u, 0.f);
 		for(AActor* Actor: OutActors)
 		{
-			UE_LOG(LogTemp, Warning,TEXT("Impact at: %s %f"), *SphereSpawnPoint.ToString(), SphereRadius);
 			if(AMarchingCube* ImpactedMarchingCube = Cast<AMarchingCube>(Actor))
 			{
-				ImpactedMarchingCube->Terraform(SphereSpawnPoint, SphereRadius, BrushForce);
+				ImpactedMarchingCube->Terraform(SphereSpawnPoint, SphereRadius, Add ? BrushForce : -BrushForce);
 			}
 		}
 
-		IsFiring = true;
+		ToggleAction = true;
 	}
-}
-
-void ASortieCharacterBase::StopFire()
-{
-	IsFiring = false;
 }
 
 // Called when the game starts or when spawned
@@ -142,6 +156,8 @@ void ASortieCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Look);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Fire);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopFire);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Aim);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopAim);
 	}
 
 }
