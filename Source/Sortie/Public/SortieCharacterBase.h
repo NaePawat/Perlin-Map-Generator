@@ -61,6 +61,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
 	float SphereRadius = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
+	float BrushForce = 0.1f;
 	//#endregion
 	
 	// Called when the game starts or when spawned

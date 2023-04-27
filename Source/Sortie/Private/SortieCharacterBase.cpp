@@ -91,7 +91,11 @@ void ASortieCharacterBase::Fire()
 		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, true, -1.f, 0u, 0.f);
 		for(AActor* Actor: OutActors)
 		{
-			UE_LOG(LogTemp, Warning,TEXT("Impact Actor: %s"), *Actor->GetActorNameOrLabel());
+			UE_LOG(LogTemp, Warning,TEXT("Impact at: %s %f"), *SphereSpawnPoint.ToString(), SphereRadius);
+			if(AMarchingCube* ImpactedMarchingCube = Cast<AMarchingCube>(Actor))
+			{
+				ImpactedMarchingCube->Terraform(SphereSpawnPoint, SphereRadius, BrushForce);
+			}
 		}
 
 		IsFiring = true;

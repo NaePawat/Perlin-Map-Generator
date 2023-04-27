@@ -96,26 +96,61 @@ FVector AMarchingCube::InterpolateEdgePosition(const FGridPoint& CornerIndexA, c
 	);
 }
 
-void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB)
+void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc)
 {
 	//Let's make it normal for now the mid point between the corner
 	const FVector VertexPos = InterpolateEdgePosition(CornerGridA, CornerGridB);
-	Vertices.Add(VertexPos);
+	Vertices.Add(VertexPos - MapLoc);
 	UV0.Add(FVector2D(VertexPos.X * UVScale / Scale, VertexPos.Y * UVScale / Scale));
 	Normals.Add(FVector(0.f, 0.f, 1.f));
 }
 
-void AMarchingCube::CreateProceduralMarchingCubesChunk()
+void AMarchingCube::CreateMesh()
 {
-	MakeGridWithNoise();
-	March();
+	//ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	//ProceduralMesh->SetMaterial(0, Material);
+
+	//Runtime Mesh Creation
+	FRealtimeMeshSimpleMeshData MeshData;
+	MeshData.Positions = Vertices;
+	MeshData.Triangles = Triangles;
+	MeshData.UV0 = UV0;
+	MeshData.Normals = Normals;
+	
+	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
+	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
+	Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
+
+	CleanUpData();
 }
 
-void AMarchingCube::MakeGridWithNoise()
+void AMarchingCube::UpdateMesh()
+{
+	CleanUpData();
+}
+
+void AMarchingCube::CleanUpData()
+{
+	Vertices.Empty();
+	Triangles.Empty();
+	UV0.Empty();
+	Normals.Empty();
+}
+
+void AMarchingCube::CreateProceduralMarchingCubesChunk()
 {
 	//check chunk location for sampling the noise
 	const FVector MapLoc = GetActorLocation();
 	
+	MakeGridWithNoise(MapLoc);
+	March(MapLoc);
+	
+	//Finished Marching, Let's create a mesh from it
+	if(Vertices.Num() > 0) CreateMesh();
+}
+
+void AMarchingCube::MakeGridWithNoise(const FVector& MapLoc)
+{
 	//add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
 	for(int x = 0; x < ChunkSize; x++)
 	{
@@ -133,8 +168,8 @@ void AMarchingCube::MakeGridWithNoise()
 				const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
 
 				//UE_LOG(LogTemp, Warning, TEXT("Perlin Value: %f %f %f --> %f"), SampleX, SampleY, SampleZ, PerlinValue);
-				GridZ.Grids.Add({FVector(x*Scale, y*Scale, z*Scale), PerlinValue, PerlinValue >= NoiseThreshold});
-				//DrawDebugSphere(GetWorld(), FVector(x * Scale, y * Scale, z*Scale), 10.0f, 16, PerlinValue >= NoiseThreshold ? FColor::Green : FColor::Red, true, -1.0f, 0u, 0.0f);
+				GridZ.Grids.Add({FVector(x*Scale + MapLoc.X, y*Scale + MapLoc.Y, z*Scale + MapLoc.Z), PerlinValue, PerlinValue >= NoiseThreshold});
+				DrawDebugBox(GetWorld(), FVector(x * Scale + MapLoc.X, y * Scale + MapLoc.Y, z*Scale + MapLoc.Z), FVector(3, 3, 3),FColor::Green,true,-1,0,0);
 			}
 			GridY.Grids.Add(GridZ);
 		}
@@ -143,7 +178,7 @@ void AMarchingCube::MakeGridWithNoise()
 }
 
 // Marching the cube, full speed ahead!
-void AMarchingCube::March()
+void AMarchingCube::March(const FVector& MapLoc)
 {
 	for(int x = 0; x < ChunkSize - 1; x++)
 	{
@@ -185,9 +220,9 @@ void AMarchingCube::March()
 					const int C1 = MarchingConst::CornerIndexBFromEdge[EdgeIndexC];
 
 					//Calculate the position of each vertex
-					CreateVertex(CurrentCube.Points[A0], CurrentCube.Points[A1]);
-					CreateVertex(CurrentCube.Points[B0], CurrentCube.Points[B1]);
-					CreateVertex(CurrentCube.Points[C0], CurrentCube.Points[C1]);
+					CreateVertex(CurrentCube.Points[A0], CurrentCube.Points[A1], MapLoc);
+					CreateVertex(CurrentCube.Points[B0], CurrentCube.Points[B1], MapLoc);
+					CreateVertex(CurrentCube.Points[C0], CurrentCube.Points[C1], MapLoc);
 
 					Triangles.Add(Vertices.Num() - 3);
 					Triangles.Add(Vertices.Num() - 2);
@@ -196,20 +231,33 @@ void AMarchingCube::March()
 			}
 		}
 	}
-	
-	//Finished Marching, Let's create a mesh from it
-	//ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	//ProceduralMesh->SetMaterial(0, Material);
+}
 
-	//Runtime Mesh Creation
-	FRealtimeMeshSimpleMeshData MeshData;
-	MeshData.Positions = Vertices;
-	MeshData.Triangles = Triangles;
-	MeshData.UV0 = UV0;
-	MeshData.Normals = Normals;
+void AMarchingCube::Terraform(const FVector& HitLoc, const float SphereRadius, const float BrushForce)
+{
+	for(int x = 0; x< ChunkSize; x++)
+	{
+		for(int y = 0; y<ChunkSize; y++)
+		{
+			for(int z = 0; z<ChunkHeight; z++)
+			{
+				FGridPoint& ChangingGrid = GridPoints.Grids[x].Grids[y].Grids[z];
+				//the grid is within the change radius, let's update its value
+				if(const float GridDist = FVector::Dist(HitLoc, ChangingGrid.Position); GridDist < SphereRadius)
+				{
+					if(ChangingGrid.On)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("GridPos: %s ,%f"), *ChangingGrid.Position.ToString(), ChangingGrid.Value);
+						ChangingGrid.Value -= FMath::Lerp(GridDist, SphereRadius, BrushForce);
+						ChangingGrid.On = ChangingGrid.Value >=NoiseThreshold;
+					}
+				}
+			}
+		}
+	}
 	
-	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
-	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
-	Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
+	March(GetActorLocation());
+
+	if (Vertices.Num() > 0) UpdateMesh();
 }
 

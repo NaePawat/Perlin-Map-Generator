@@ -121,8 +121,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void CreateProceduralMarchingCubesChunk();
-	void MakeGridWithNoise();
-	void March();
+	void MakeGridWithNoise(const FVector& MapLoc);
+	void March(const FVector& MapLoc);
+	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
 
 private:
 
@@ -138,5 +139,8 @@ private:
 	TArray<FVector> Normals;
 
 	FVector InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const;
-	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB);
+	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc);
+	void CreateMesh();
+	void UpdateMesh();
+	void CleanUpData();
 };

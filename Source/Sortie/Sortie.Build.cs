@@ -10,7 +10,7 @@ public class Sortie : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "RealtimeMeshComponent" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "ProceduralMeshComponent" });
 
 		//For optimizing build
 		MinFilesUsingPrecompiledHeaderOverride = 1;
