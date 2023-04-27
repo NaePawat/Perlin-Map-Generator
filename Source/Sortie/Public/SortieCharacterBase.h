@@ -68,6 +68,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
 	float SphereRadius = 1.f;
 
+	//Check the scale of the terrain as well
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
 	float BrushForce = -1.f;
 

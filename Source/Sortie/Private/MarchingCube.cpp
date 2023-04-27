@@ -104,7 +104,7 @@ float AMarchingCube::SmoothStep(const float MinValue, const float MaxValue, cons
 {
 	//interpolation function = -2x^3 + 3x^2
 	const float DistMu = (Dist - MinValue) / (MaxValue - MinValue);
-	return DistMu * Dist / MinValue * 100;
+	return DistMu * (Dist / MinValue * 100);
 }
 
 void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc)
@@ -268,8 +268,8 @@ void AMarchingCube::Terraform(const FVector& HitLoc, const float SphereRadius, c
 				//the grid is within the change radius, let's update its value
 				if(const float GridDist = FVector::Dist(HitLoc, Position); GridDist < SphereRadius)
 				{
-					//interpolation function = -2x^3 + 3x^2
-					Value += SmoothStep(SphereRadius, SphereRadius * 0.7, GridDist)*BrushForce;
+					const float TerrainFormValue = SmoothStep(SphereRadius, SphereRadius * 0.5, GridDist) * NoiseThreshold * BrushForce / NoiseScale;
+					Value += TerrainFormValue;
 					On = Value >= NoiseThreshold;
 				}
 			}
