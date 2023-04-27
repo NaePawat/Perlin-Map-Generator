@@ -77,7 +77,7 @@ void ASortieCharacterBase::Fire()
 		FVector TraceEnd = CameraComp->GetComponentLocation() + CameraComp->GetComponentRotation().Vector() * LineTraceDistance;
 
 		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, HitResult.bBlockingHit ? FColor::Blue : FColor::Red, false, 5.0f, 0, 10.0f);
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, HitResult.bBlockingHit ? FColor::Blue : FColor::Red, false, 5.0f, 0, 1.0f);
 		
 		FVector SphereSpawnPoint = HitResult.ImpactPoint;
 
@@ -88,7 +88,7 @@ void ASortieCharacterBase::Fire()
 
 		TArray<AActor*> OutActors;
 		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SphereSpawnPoint, SphereRadius, TraceObjectTypes, AMarchingCube::StaticClass(), IgnoreActor, OutActors);
-		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, true, -1.f, 0u, 0.f);
+		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, false, 5.f, 0u, 0.f);
 		for(AActor* Actor: OutActors)
 		{
 			UE_LOG(LogTemp, Warning,TEXT("Impact at: %s %f"), *SphereSpawnPoint.ToString(), SphereRadius);

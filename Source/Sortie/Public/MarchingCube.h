@@ -75,7 +75,7 @@ public:
 //#endregion
 
 UCLASS()
-class SORTIE_API AMarchingCube : public ARealtimeMeshActor
+class SORTIE_API AMarchingCube : public AActor
 {
 	GENERATED_BODY()
 	
@@ -126,12 +126,16 @@ public:
 	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
 
 private:
-
 	UPROPERTY()
+	UProceduralMeshComponent* ProcMesh;
+
+	/*UPROPERTY()
 	URealtimeMeshComponent* RealtimeMesh;
 
 	UPROPERTY()
 	URealtimeMeshSimple* Mesh;
+
+	FRealtimeMeshSectionKey MeshSection;*/
 	
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;

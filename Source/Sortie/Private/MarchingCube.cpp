@@ -4,6 +4,7 @@
 #include "MarchingCube.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
+#include "ProceduralMeshComponent.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
 
@@ -62,8 +63,11 @@ AMarchingCube::AMarchingCube()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
-	SetRootComponent(RealtimeMesh);
+	ProcMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProcMesh");
+	SetRootComponent(ProcMesh);
+
+	//RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
+	//SetRootComponent(RealtimeMesh);
 }
 
 // Called when the game starts or when spawned
@@ -107,11 +111,11 @@ void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint
 
 void AMarchingCube::CreateMesh()
 {
-	//ProceduralMesh->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	//ProceduralMesh->SetMaterial(0, Material);
+	ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	ProcMesh->SetMaterial(0, Material);
 
 	//Runtime Mesh Creation
-	FRealtimeMeshSimpleMeshData MeshData;
+	/*FRealtimeMeshSimpleMeshData MeshData;
 	MeshData.Positions = Vertices;
 	MeshData.Triangles = Triangles;
 	MeshData.UV0 = UV0;
@@ -119,13 +123,25 @@ void AMarchingCube::CreateMesh()
 	
 	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
 	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
-	Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
+	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);*/
 
 	CleanUpData();
 }
 
 void AMarchingCube::UpdateMesh()
 {
+	ProcMesh->ClearMeshSection(0);
+	ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	ProcMesh->SetMaterial(0, Material);
+	
+	//Runtime Mesh Creation
+	/*FRealtimeMeshSimpleMeshData MeshData;
+	MeshData.Positions = Vertices;
+	MeshData.Triangles = Triangles;
+	MeshData.UV0 = UV0;
+	MeshData.Normals = Normals;
+	
+	Mesh->UpdateSectionMesh(MeshSection, MeshData);*/
 	CleanUpData();
 }
 
@@ -169,7 +185,7 @@ void AMarchingCube::MakeGridWithNoise(const FVector& MapLoc)
 
 				//UE_LOG(LogTemp, Warning, TEXT("Perlin Value: %f %f %f --> %f"), SampleX, SampleY, SampleZ, PerlinValue);
 				GridZ.Grids.Add({FVector(x*Scale + MapLoc.X, y*Scale + MapLoc.Y, z*Scale + MapLoc.Z), PerlinValue, PerlinValue >= NoiseThreshold});
-				DrawDebugBox(GetWorld(), FVector(x * Scale + MapLoc.X, y * Scale + MapLoc.Y, z*Scale + MapLoc.Z), FVector(3, 3, 3),FColor::Green,true,-1,0,0);
+				//DrawDebugBox(GetWorld(), FVector(x * Scale + MapLoc.X, y * Scale + MapLoc.Y, z*Scale + MapLoc.Z), FVector(3, 3, 3),FColor::Green,true,-1,0,0);
 			}
 			GridY.Grids.Add(GridZ);
 		}
