@@ -80,8 +80,9 @@ protected:
 
 public:
 
+	//Check the size of the terrain as well
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="View Helper")
-	float MaxViewDistance = 300.f;
+	float MaxViewDistance = 100.f;
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

@@ -65,6 +65,8 @@ public:
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0, ClampMax = 6))
 	int LOD = 0;
+
+	FVector ChunkCoord;
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -81,5 +83,5 @@ private:
 	TArray<FVector2D> UV0;
 
 	void CreateVertices();
-	void CreateTriangles();
+	void CreateTriangles(); 
 };

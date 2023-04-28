@@ -2,6 +2,8 @@
 
 
 #include "EndlessMap.h"
+
+#include "MarchingCube.h"
 #include "Kismet/GameplayStatics.h"
 #include "SortieCharacterBase.h"
 #include "TerrainChunk.h"
@@ -20,15 +22,29 @@ void AEndlessMap::BeginPlay()
 	Super::BeginPlay();
 
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
-	
-	if(const ATerrainChunk* MapChunk = Cast<ATerrainChunk>(MapGen->GetDefaultObject()))
+
+	switch (GenerateChunkType)
 	{
-		ChunkSize = MapChunk->ChunkSize - 1;
-		ChunkScale = MapChunk->Scale;
-		ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
-		/*UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkSize: %d"), ChunkSize);
-		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkScale: %f"), ChunkScale);
-		UE_LOG(LogTemp, Warning, TEXT("Infinite Map ChunkVisibleDst: %d"), ChunkVisibleInViewDst);*/
+	case EGenerateType::PerlinNoise2D:
+		{
+			if(const ATerrainChunk* MapChunk = Cast<ATerrainChunk>(Terrain2DGen->GetDefaultObject()))
+			{
+				ChunkSize = MapChunk->ChunkSize - 1;
+				ChunkScale = MapChunk->Scale;
+				ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
+			}
+		}
+		break;
+	case EGenerateType::PerlinNoise3D:
+		{
+			if(const AMarchingCube* MapChunk = Cast<AMarchingCube>(Terrain3DGen->GetDefaultObject()))
+			{
+				ChunkSize = MapChunk->ChunkSize;
+				ChunkScale = MapChunk->Scale;
+				ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
+			}
+		}
+		break;
 	}
 }
 
@@ -37,10 +53,22 @@ void AEndlessMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdateVisibleChunk();
+	switch(GenerateChunkType)
+	{
+	case EGenerateType::PerlinNoise2D:
+		{
+			UpdateVisibleChunk2D();
+		}
+		break;
+	case EGenerateType::PerlinNoise3D:
+		{
+			UpdateVisibleChunk3D();
+		}
+		break;
+	}
 }
 
-void AEndlessMap::UpdateVisibleChunk()
+void AEndlessMap::UpdateVisibleChunk2D()
 {
 	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
 	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / (ChunkSize * ChunkScale));
@@ -48,20 +76,54 @@ void AEndlessMap::UpdateVisibleChunk()
 	{
 		for(int XOffset = -ChunkVisibleInViewDst; XOffset <=ChunkVisibleInViewDst; XOffset++)
 		{
-			FVector2D ViewedChunkCoord = FVector2D(CurrentChunkCoordX + XOffset, CurrentChunkCoordY + YOffset);
-			if (MapChunkDict.Contains(ViewedChunkCoord))
-			{
-				//If the view chunk is already added in the dict
-			} else
+			FVector ViewedChunkCoord = FVector(CurrentChunkCoordX + XOffset, CurrentChunkCoordY + YOffset, 0);
+			if (!MapChunkDict.Contains(ViewedChunkCoord))
 			{
 				// spawn and add the map chunk
 				FTransform SpawnTransform;
 				FActorSpawnParameters SpawnInfo;
 				SpawnTransform.SetLocation(FVector(ViewedChunkCoord.X*ChunkSize*ChunkScale, ViewedChunkCoord.Y*ChunkSize*ChunkScale,0));
-				ATerrainChunk* NewMapChunk = GetWorld()->SpawnActor<ATerrainChunk>(MapGen, SpawnTransform,SpawnInfo);
 				
-				//UE_LOG(LogTemp, Warning, TEXT("Spawn Loc: %d %d"), static_cast<int>(ViewedChunkCoord.X * ChunkSize * ChunkScale), static_cast<int>(ViewedChunkCoord.Y * ChunkSize * ChunkScale));
+				ATerrainChunk* NewMapChunk = GetWorld()->SpawnActor<ATerrainChunk>(Terrain2DGen, SpawnTransform,SpawnInfo);
+				NewMapChunk->ChunkCoord = ViewedChunkCoord;
+				
 				MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
+			}
+		}
+	}
+}
+
+void AEndlessMap::UpdateVisibleChunk3D()
+{
+	//TODO: Implement the limit height
+	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
+	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / (ChunkSize * ChunkScale));
+	const int CurrentChunkCoordZ = FMath::RoundToInt(Viewer->GetActorLocation().Z / (ChunkSize* ChunkScale));
+
+	//three for loop
+	for(int ZOffset = -ChunkVisibleInViewDst; ZOffset <= ChunkVisibleInViewDst; ZOffset++)
+	{
+		for(int YOffset = -ChunkVisibleInViewDst; YOffset <= ChunkVisibleInViewDst; YOffset++)
+		{
+			for(int XOffset = -ChunkVisibleInViewDst; XOffset <= ChunkVisibleInViewDst; XOffset++)
+			{
+				FVector ViewedChunkCoord = FVector(CurrentChunkCoordX + XOffset, CurrentChunkCoordY + YOffset, CurrentChunkCoordZ + ZOffset);
+				if(!MapChunkDict.Contains(ViewedChunkCoord))
+				{
+					// spawn and add the map chunk
+					FTransform SpawnTransform;
+					FActorSpawnParameters SpawnInfo;
+					SpawnTransform.SetLocation(FVector(
+						ViewedChunkCoord.X*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.X,
+						ViewedChunkCoord.Y*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Y,
+						ViewedChunkCoord.Z*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Z));
+
+					AMarchingCube* NewMapChunk = GetWorld()->SpawnActor<AMarchingCube>(Terrain3DGen, SpawnTransform, SpawnInfo);
+					NewMapChunk->ChunkCoord = ViewedChunkCoord;
+					UE_LOG(LogTemp, Warning, TEXT("chunk xyz: %f %f %f, %s"), ViewedChunkCoord.X, ViewedChunkCoord.Y, ViewedChunkCoord.Z, *NewMapChunk->GetName());
+
+					MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
+				}
 			}
 		}
 	}

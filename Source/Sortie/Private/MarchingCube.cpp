@@ -82,6 +82,7 @@ void AMarchingCube::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	//TODO: change to LOD of the mesh
 }
 
 FVector AMarchingCube::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const

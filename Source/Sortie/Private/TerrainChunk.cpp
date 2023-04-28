@@ -2,6 +2,8 @@
 
 
 #include "TerrainChunk.h"
+
+#include "EndlessMap.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/RandomStream.h"
 #include "ProceduralMeshComponent.h"
@@ -58,6 +60,14 @@ void ATerrainChunk::CheckVisible()
 void ATerrainChunk::SetVisible(const bool Visible)
 {
 	SetActorHiddenInGame(!Visible);
+	if(!Visible)
+	{
+		if(AEndlessMap* EndlessMap = Cast<AEndlessMap>(UGameplayStatics::GetActorOfClass(GetWorld(), AEndlessMap::StaticClass())))
+		{
+			EndlessMap->MapChunkDict.Remove(ChunkCoord);
+			Destroy();
+		}
+	}
 }
 
 //Function for creating a random perlin noise map

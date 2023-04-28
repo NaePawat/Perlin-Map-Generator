@@ -115,6 +115,8 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material;
+
+	FVector ChunkCoord;
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

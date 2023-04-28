@@ -8,7 +8,15 @@
 
 //forward declaration
 class ATerrainChunk;
+class AMarchingCube;
 class ASortieCharacterBase;
+
+UENUM()
+enum class EGenerateType: uint8
+{
+	PerlinNoise2D = 0 UMETA(DisplayName = "2D PerlinNoise Terrain"),
+	PerlinNoise3D = 1 UMETA(DisplayName = "3D PerlinNoise Terrain")
+};
 
 UCLASS()
 class SORTIE_API AEndlessMap : public AActor
@@ -25,7 +33,13 @@ protected:
 	ASortieCharacterBase* Viewer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Endless Components")
-	TSubclassOf<ATerrainChunk> MapGen;
+	EGenerateType GenerateChunkType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Endless Components")
+	TSubclassOf<ATerrainChunk> Terrain2DGen;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Endless Components")
+	TSubclassOf<AMarchingCube> Terrain3DGen;
 
 	int ChunkSize = 0;
 	float ChunkScale = 0;
@@ -34,11 +48,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	void UpdateVisibleChunk();
+	void UpdateVisibleChunk2D();
+	void UpdateVisibleChunk3D();
 
 public:
-	
-	TMap<FVector2D, ATerrainChunk*> MapChunkDict;
+
+	UPROPERTY()
+	TMap<FVector, AActor*> MapChunkDict;
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
