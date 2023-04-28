@@ -4,7 +4,6 @@
 #include "MarchingCube.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
-#include "ProceduralMeshComponent.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
 
@@ -63,11 +62,11 @@ AMarchingCube::AMarchingCube()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	ProcMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProcMesh");
-	SetRootComponent(ProcMesh);
+	//ProcMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProcMesh");
+	//SetRootComponent(ProcMesh);
 
-	//RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
-	//SetRootComponent(RealtimeMesh);
+	RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
+	SetRootComponent(RealtimeMesh);
 }
 
 // Called when the game starts or when spawned
@@ -118,11 +117,11 @@ void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint
 
 void AMarchingCube::CreateMesh()
 {
-	ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	ProcMesh->SetMaterial(0, Material);
+	/*ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	ProcMesh->SetMaterial(0, Material);*/
 
 	//Runtime Mesh Creation
-	/*FRealtimeMeshSimpleMeshData MeshData;
+	FRealtimeMeshSimpleMeshData MeshData;
 	MeshData.Positions = Vertices;
 	MeshData.Triangles = Triangles;
 	MeshData.UV0 = UV0;
@@ -130,25 +129,26 @@ void AMarchingCube::CreateMesh()
 	
 	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
 	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
-	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);*/
-
+	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
+	
 	CleanUpData();
 }
 
 void AMarchingCube::UpdateMesh()
 {
-	ProcMesh->ClearMeshSection(0);
+	/*ProcMesh->ClearMeshSection(0);
 	ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	ProcMesh->SetMaterial(0, Material);
+	ProcMesh->SetMaterial(0, Material);*/
 	
 	//Runtime Mesh Creation
-	/*FRealtimeMeshSimpleMeshData MeshData;
+	FRealtimeMeshSimpleMeshData MeshData;
 	MeshData.Positions = Vertices;
 	MeshData.Triangles = Triangles;
 	MeshData.UV0 = UV0;
 	MeshData.Normals = Normals;
-	
-	Mesh->UpdateSectionMesh(MeshSection, MeshData);*/
+
+	Mesh->RemoveSection(MeshSection);
+	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 	CleanUpData();
 }
 

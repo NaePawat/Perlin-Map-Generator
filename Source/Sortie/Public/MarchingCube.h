@@ -10,7 +10,6 @@
 
 //forward declaration
 class ASortieCharacterBase;
-class UProceduralMeshComponent;
 class UMaterialInterface;
 
 //#region Structs
@@ -75,7 +74,7 @@ public:
 //#endregion
 
 UCLASS()
-class SORTIE_API AMarchingCube : public AActor
+class SORTIE_API AMarchingCube : public ARealtimeMeshActor
 {
 	GENERATED_BODY()
 	
@@ -126,16 +125,16 @@ public:
 	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
 
 private:
-	UPROPERTY()
-	UProceduralMeshComponent* ProcMesh;
-
 	/*UPROPERTY()
+	UProceduralMeshComponent* ProcMesh;*/
+
+	UPROPERTY()
 	URealtimeMeshComponent* RealtimeMesh;
 
 	UPROPERTY()
 	URealtimeMeshSimple* Mesh;
 
-	FRealtimeMeshSectionKey MeshSection;*/
+	FRealtimeMeshSectionKey MeshSection;
 	
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;
