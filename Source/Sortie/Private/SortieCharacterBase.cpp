@@ -61,6 +61,11 @@ void ASortieCharacterBase::Look(const FInputActionValue& Value)
 	}
 }
 
+void ASortieCharacterBase::Jump()
+{
+	Super::Jump();
+}
+
 void ASortieCharacterBase::Fire()
 {
 	EditTerrain(false, IsFiring);
@@ -154,6 +159,7 @@ void ASortieCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this,&ASortieCharacterBase::MoveForward);
 		EnhancedInputComponent->BindAction(MoveRightAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::MoveRight);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Look);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Jump);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Fire);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopFire);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Aim);

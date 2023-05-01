@@ -49,12 +49,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* AimAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* JumpAction;
+
 	bool IsFiring = false;
 	bool IsAiming = false;
 	
 	void MoveForward(const FInputActionValue& Value);
 	void MoveRight(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	virtual void Jump() override;
 	void Fire();
 	void StopFire();
 	void Aim();

@@ -2,7 +2,6 @@
 
 
 #include "EndlessMap.h"
-
 #include "MarchingCube.h"
 #include "Kismet/GameplayStatics.h"
 #include "SortieCharacterBase.h"
@@ -120,7 +119,6 @@ void AEndlessMap::UpdateVisibleChunk3D()
 
 					AMarchingCube* NewMapChunk = GetWorld()->SpawnActor<AMarchingCube>(Terrain3DGen, SpawnTransform, SpawnInfo);
 					NewMapChunk->ChunkCoord = ViewedChunkCoord;
-					UE_LOG(LogTemp, Warning, TEXT("chunk xyz: %f %f %f, %s"), ViewedChunkCoord.X, ViewedChunkCoord.Y, ViewedChunkCoord.Z, *NewMapChunk->GetName());
 
 					MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
 				}
