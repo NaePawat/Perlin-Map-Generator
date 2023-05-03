@@ -10,6 +10,7 @@
 //forward declaration
 class UCameraComponent;
 class USpringArmComponent;
+class USCharacterMovementComponent;
 class UInputMappingContext;
 class UInputAction;
 
@@ -20,7 +21,7 @@ class SORTIE_API ASortieCharacterBase : public ACharacter
 
 public:
 	// Sets default values for this character's properties
-	ASortieCharacterBase();
+	ASortieCharacterBase(const FObjectInitializer& ObjectInitializer);
 
 protected:
 
@@ -77,6 +78,11 @@ protected:
 	float BrushForce = -1.f;
 
 	void EditTerrain(const bool Add, bool ToggleAction);
+	//#endregion
+
+	//#region Gravitational Movement
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Directional Gravity")
+	USCharacterMovementComponent* GetGravityMovementComponent() const;
 	//#endregion
 	
 	// Called when the game starts or when spawned

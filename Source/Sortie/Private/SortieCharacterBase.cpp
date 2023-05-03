@@ -3,6 +3,7 @@
 
 #include "SortieCharacterBase.h"
 #include "Camera/CameraComponent.h"
+#include "Components/Character/SCharacterMovementComponent.h"
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -12,10 +13,10 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-// Sets default values
-ASortieCharacterBase::ASortieCharacterBase()
+ASortieCharacterBase::ASortieCharacterBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	//Setting up components for the character
@@ -23,7 +24,7 @@ ASortieCharacterBase::ASortieCharacterBase()
 	SpringArmComp->SetupAttachment(RootComponent);
 	SpringArmComp->bUsePawnControlRotation = true;
 
-    ACharacter::GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
+	ACharacter::GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
@@ -124,6 +125,11 @@ void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
 
 		ToggleAction = true;
 	}
+}
+
+USCharacterMovementComponent* ASortieCharacterBase::GetGravityMovementComponent() const
+{
+	return Cast<USCharacterMovementComponent>(GetMovementComponent());
 }
 
 // Called when the game starts or when spawned
