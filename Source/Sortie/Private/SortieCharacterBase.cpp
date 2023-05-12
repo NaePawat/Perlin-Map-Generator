@@ -67,6 +67,7 @@ void ASortieCharacterBase::Jump()
 	Super::Jump();
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 void ASortieCharacterBase::Fire()
 {
 	EditTerrain(false, IsFiring);
@@ -77,6 +78,7 @@ void ASortieCharacterBase::StopFire()
 	IsFiring = false;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 void ASortieCharacterBase::Aim()
 {
 	EditTerrain(true, IsAiming);
@@ -97,32 +99,25 @@ void ASortieCharacterBase::ChangeGravityDirection()
 	}
 }
 
-void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
+void ASortieCharacterBase::EditTerrain(const bool Add, const bool ToggleAction) const
 {
 	if(!ToggleAction)
 	{
-		TArray<AActor*> IgnoreActor;
-		IgnoreActor.Init(this, 1);
-			
-		const FVector SphereSpawnPoint = LineTraceFromCamera().ImpactPoint;
-
-		//Set what actor to seek out from it's collision channel
-		TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
-		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility));
-		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-
-		TArray<AActor*> OutActors;
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SphereSpawnPoint, SphereRadius, TraceObjectTypes, AMCChunk::StaticClass(), IgnoreActor, OutActors);
-		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, false, 5.f, 0u, 0.f);
-		for(AActor* Actor: OutActors)
+		const FHitResult HitResult = LineTraceFromCamera();
+		if(HitResult.bBlockingHit)
 		{
-			if(AMCChunk* ImpactedMarchingCube = Cast<AMCChunk>(Actor))
+			if (AMCChunk* ChunkHit = Cast<AMCChunk>(HitResult.GetActor()))
 			{
-				ImpactedMarchingCube->Terraform(SphereSpawnPoint, SphereRadius, Add ? BrushForce : -BrushForce);
+				TArray<AMCChunk*> ChunksNeedCalculation = ChunkHit->GetNeighborChunks();
+
+				ChunksNeedCalculation.Add(ChunkHit);
+
+				for(AMCChunk* Chunk : ChunksNeedCalculation)
+				{
+					Chunk->Terraform(HitResult.ImpactPoint, SphereRadius, Add ? BrushForce : -BrushForce);
+				}
 			}
 		}
-
-		ToggleAction = true;
 	}
 }
 

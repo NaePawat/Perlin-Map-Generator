@@ -3,6 +3,7 @@
 
 #include "MCChunk.h"
 #include "Constant/MarchingConst.h"
+#include "EndlessMap.h"
 #include "Kismet/GameplayStatics.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
@@ -140,6 +141,7 @@ void AMCChunk::UpdateProcMesh()
 
 	Mesh->RemoveSection(MeshSection);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
+	
 	CleanUpData();
 }
 
@@ -270,6 +272,7 @@ void AMCChunk::March(const FVector& MapLoc)
 
 void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const float BrushForce)
 {
+	bool bIsEffected = false;
 	for(int x = 0; x< ChunkSize; x++)
 	{
 		for(int y = 0; y<ChunkSize; y++)
@@ -280,6 +283,7 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 				//the grid is within the change radius, let's update its value
 				if(const float GridDist = FVector::Dist(HitLoc, Position); GridDist < SphereRadius)
 				{
+					bIsEffected = true;
 					const float TerrainFormValue = SmoothStep(SphereRadius, SphereRadius * 0.5, GridDist) * NoiseThreshold * BrushForce / NoiseScale;
 					Value += TerrainFormValue;
 					On = Value >= NoiseThreshold;
@@ -288,8 +292,35 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 		}
 	}
 	
-	March(GetActorLocation());
-
+	if (bIsEffected) March(GetActorLocation());
 	if (Vertices.Num() > 0) UpdateProcMesh();
+}
+
+TArray<AMCChunk*> AMCChunk::GetNeighborChunks() const
+{
+	if(AEndlessMap* EndlessMap = Cast<AEndlessMap>(UGameplayStatics::GetActorOfClass(GetWorld(), AEndlessMap::StaticClass())))
+	{
+		TArray<AMCChunk*> Neighbors;
+
+		for(int x = -1; x<=1 ; ++x)
+		{
+			for(int y = -1; y<=1 ; ++y)
+			{
+				for(int z = -1; z<=1 ; ++z)
+				{
+					if (x == 0 && y == 0 && z == 0) continue;
+					const FVector CurrentCoord = FVector(ChunkCoord.X + x, ChunkCoord.Y + y, ChunkCoord.Z + z);
+					if(EndlessMap->MapChunkDict.Contains(CurrentCoord))
+					{
+						Neighbors.Add(Cast<AMCChunk>(EndlessMap->MapChunkDict[CurrentCoord]));
+					}
+				}
+			}
+		}
+
+		return Neighbors;
+	}
+	
+	return TArray<AMCChunk*>();
 }
 

@@ -81,7 +81,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Terrain Editing")
 	float BrushForce = -1.f;
 
-	void EditTerrain(const bool Add, bool ToggleAction);
+	void EditTerrain(const bool Add, bool ToggleAction) const;
 	//#endregion
 
 	//#region Gravitational Movement

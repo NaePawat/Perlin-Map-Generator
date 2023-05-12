@@ -134,6 +134,7 @@ public:
 	void MakeGridWithNoise(const FVector& MapLoc);
 	void March(const FVector& MapLoc);
 	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
+	TArray<AMCChunk*> GetNeighborChunks() const;
 
 private:
 	UPROPERTY()
