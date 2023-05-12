@@ -2,7 +2,6 @@
 
 
 #include "MCChunk.h"
-#include "AI/NavigationSystemBase.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
 #include "RealtimeMeshLibrary.h"
@@ -63,9 +62,6 @@ AMCChunk::AMCChunk()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	//ProcMesh = CreateDefaultSubobject<UProceduralMeshComponent>("ProcMesh");
-	//SetRootComponent(ProcMesh);
-
 	RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
 	SetRootComponent(RealtimeMesh);
 }
@@ -119,9 +115,6 @@ void AMCChunk::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& Cor
 
 void AMCChunk::CreateProcMesh()
 {
-	/*ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	ProcMesh->SetMaterial(0, Material);*/
-
 	//Runtime Mesh Creation
 	FRealtimeMeshSimpleMeshData MeshData;
 	MeshData.Positions = Vertices;
@@ -138,10 +131,6 @@ void AMCChunk::CreateProcMesh()
 
 void AMCChunk::UpdateProcMesh()
 {
-	/*ProcMesh->ClearMeshSection(0);
-	ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-	ProcMesh->SetMaterial(0, Material);*/
-	
 	//Runtime Mesh Creation
 	FRealtimeMeshSimpleMeshData MeshData;
 	MeshData.Positions = Vertices;
@@ -152,27 +141,6 @@ void AMCChunk::UpdateProcMesh()
 	Mesh->RemoveSection(MeshSection);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 	CleanUpData();
-}
-
-void AMCChunk::CreateNavMesh()
-{
-	if(RealtimeMesh)
-	{
-		//Enable NavMesh Generation
-		FNavigationSystem::UpdateComponentData(*RealtimeMesh);
-		
-		//Build NavMesh
-		FNavigationSystem::Build(*GetWorld());
-	}
-}
-
-void AMCChunk::UpdateNavMesh()
-{
-	if(RealtimeMesh)
-	{
-		//Update NavMesh Component Data
-		FNavigationSystem::UpdateComponentData(*RealtimeMesh);
-	}
 }
 
 void AMCChunk::CleanUpData()
@@ -192,16 +160,24 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 	March(MapLoc);
 	
 	//Finished Marching, Let's create a mesh from it
-	if(Vertices.Num() > 0)
-	{
-		CreateProcMesh();
-		//CreateNavMesh();
-	}
+	if(Vertices.Num() > 0) CreateProcMesh();
 }
 
 void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 {
-	//add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
+	//Check Seeds before adding in
+	const FRandomStream* RandomStream = new FRandomStream(Seed);
+	TArray<FVector> OctaveOffsets;
+
+	for(int i = 0; i< Octaves; i++)
+	{
+		const float OffsetX = RandomStream->RandRange(0,100);
+		const float OffsetY = RandomStream->RandRange(0,100);
+		const float OffsetZ = RandomStream->RandRange(0,100);
+		OctaveOffsets.Add(FVector(OffsetX, OffsetY, OffsetZ));
+	}
+	
+	//Add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
 	for(int x = 0; x < ChunkSize; x++)
 	{
 		FGridArray2D GridY;
@@ -210,14 +186,25 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 			FGridArray1D GridZ;
 			for(int z = 0; z < ChunkHeight; z++)
 			{
-				//Perlin Noise 3D
-				const float SampleX = (x + MapLoc.X/Scale) / NoiseScale;
-				const float SampleY = (y + MapLoc.Y/Scale) / NoiseScale;
-				const float SampleZ = (z + MapLoc.Z/Scale) / NoiseScale;
+				//we're going to use this for sampling the octaves together
+				float Amplitude = 1.f;
+				float Frequency = 1.f;
+				float Noisiness = 0.f;
 
-				const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
+				for(int i = 0; i < Octaves; i++)
+				{
+					//Perlin Noise 3D
+					const float SampleX = (x + MapLoc.X/Scale) / NoiseScale * Frequency + OctaveOffsets[i].X * Frequency;
+					const float SampleY = (y + MapLoc.Y/Scale) / NoiseScale * Frequency + OctaveOffsets[i].Y * Frequency;
+					const float SampleZ = (z + MapLoc.Z/Scale) / NoiseScale * Frequency + OctaveOffsets[i].Z * Frequency;
 
-				GridZ.Grids.Add({FVector(x*Scale + MapLoc.X, y*Scale + MapLoc.Y, z*Scale + MapLoc.Z), PerlinValue, PerlinValue >= NoiseThreshold});
+					const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
+					Noisiness += PerlinValue * Amplitude;
+					Amplitude *= Persistance;
+					Frequency *= Lacunarity;
+				}
+
+				GridZ.Grids.Add({FVector(x*Scale + MapLoc.X, y*Scale + MapLoc.Y, z*Scale + MapLoc.Z), Noisiness, Noisiness >= NoiseThreshold});
 			}
 			GridY.Grids.Add(GridZ);
 		}
@@ -303,10 +290,6 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 	
 	March(GetActorLocation());
 
-	if (Vertices.Num() > 0)
-	{
-		UpdateProcMesh();
-		//UpdateNavMesh();
-	}
+	if (Vertices.Num() > 0) UpdateProcMesh();
 }
 

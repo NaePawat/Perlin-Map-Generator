@@ -92,6 +92,15 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
+	int Octaves = 1; // number of noise maps before each of them are added together
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
+	float Persistance = 0.0f; // control decrease in amplitude of the octave
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
+	float Lacunarity = 0.0f; //control increase in frequency of the octave
+	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.000001))
 	float NoiseThreshold = 0.f;//minimum value for the GridPoint to turns on
 
@@ -127,9 +136,6 @@ public:
 	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
 
 private:
-	/*UPROPERTY()
-	UProceduralMeshComponent* ProcMesh;*/
-
 	UPROPERTY()
 	URealtimeMeshComponent* RealtimeMesh;
 
@@ -149,7 +155,5 @@ private:
 	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc);
 	void CreateProcMesh();
 	void UpdateProcMesh();
-	void CreateNavMesh();
-	void UpdateNavMesh();
 	void CleanUpData();
 };
