@@ -50,6 +50,7 @@ protected:
 
 	void UpdateVisibleChunk2D();
 	void UpdateVisibleChunk3D();
+	AMCChunk* Spawn3D(const FVector& ViewedChunkCoord) const;
 
 public:
 

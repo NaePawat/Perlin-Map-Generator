@@ -2,6 +2,7 @@
 
 
 #include "MCChunk.h"
+#include "Async/Async.h"
 #include "Constant/MarchingConst.h"
 #include "EndlessMap.h"
 #include "Kismet/GameplayStatics.h"
@@ -72,6 +73,7 @@ void AMCChunk::BeginPlay()
 {
 	Super::BeginPlay();
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
+
 	CreateProceduralMarchingCubesChunk();
 }
 
@@ -180,13 +182,13 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 	}
 	
 	//Add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
-	for(int x = 0; x < ChunkSize; x++)
+	for(int x = 0; x < ChunkSize/LOD; x++)
 	{
 		FGridArray2D GridY;
-		for(int y = 0; y < ChunkSize; y++)
+		for(int y = 0; y < ChunkSize/LOD; y++)
 		{
 			FGridArray1D GridZ;
-			for(int z = 0; z < ChunkHeight; z++)
+			for(int z = 0; z < ChunkHeight/LOD; z++)
 			{
 				//we're going to use this for sampling the octaves together
 				float Amplitude = 1.f;
@@ -206,7 +208,7 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 					Frequency *= Lacunarity;
 				}
 
-				GridZ.Grids.Add({FVector(x*Scale + MapLoc.X, y*Scale + MapLoc.Y, z*Scale + MapLoc.Z), Noisiness, Noisiness >= NoiseThreshold});
+				GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), Noisiness, Noisiness >= NoiseThreshold});
 			}
 			GridY.Grids.Add(GridZ);
 		}
@@ -217,11 +219,11 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 // Marching the cube, full speed ahead!
 void AMCChunk::March(const FVector& MapLoc)
 {
-	for(int x = 0; x < ChunkSize - 1; x++)
+	for(int x = 0; x < ChunkSize/LOD - 1; x++)
 	{
-		for(int y = 0; y < ChunkSize - 1; y++)
+		for(int y = 0; y < ChunkSize/LOD - 1; y++)
 		{
-			for(int z = 0; z < ChunkHeight - 1; z++)
+			for(int z = 0; z < ChunkHeight/LOD - 1; z++)
 			{
 				//current cube corners
 				const FCube CurrentCube = FCube(
@@ -273,7 +275,7 @@ void AMCChunk::March(const FVector& MapLoc)
 void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const float BrushForce)
 {
 	bool bIsEffected = false;
-	for(int x = 0; x< ChunkSize; x++)
+	for(int x = 0; x<ChunkSize; x++)
 	{
 		for(int y = 0; y<ChunkSize; y++)
 		{
@@ -291,9 +293,14 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 			}
 		}
 	}
-	
-	if (bIsEffected) March(GetActorLocation());
-	if (Vertices.Num() > 0) UpdateProcMesh();
+
+	const TFuture<void> TerraformingTask = Async(EAsyncExecution::ThreadPool, [=]
+	{
+		if (bIsEffected) March(GetActorLocation());
+		if (Vertices.Num() > 0) UpdateProcMesh();
+	});
+
+	TerraformingTask.Wait();
 }
 
 TArray<AMCChunk*> AMCChunk::GetNeighborChunks() const

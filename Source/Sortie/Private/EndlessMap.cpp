@@ -2,6 +2,7 @@
 
 
 #include "EndlessMap.h"
+#include "Async/Async.h"
 #include "Kismet/GameplayStatics.h"
 #include "MCChunk.h"
 #include "SortieCharacterBase.h"
@@ -109,21 +110,31 @@ void AEndlessMap::UpdateVisibleChunk3D()
 				FVector ViewedChunkCoord = FVector(CurrentChunkCoordX + XOffset, CurrentChunkCoordY + YOffset, CurrentChunkCoordZ + ZOffset);
 				if(!MapChunkDict.Contains(ViewedChunkCoord))
 				{
-					// spawn and add the map chunk
-					FTransform SpawnTransform;
-					FActorSpawnParameters SpawnInfo;
-					SpawnTransform.SetLocation(FVector(
-						ViewedChunkCoord.X*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.X,
-						ViewedChunkCoord.Y*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Y,
-						ViewedChunkCoord.Z*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Z));
-
-					AMCChunk* NewMapChunk = GetWorld()->SpawnActor<AMCChunk>(Terrain3DGen, SpawnTransform, SpawnInfo);
-					NewMapChunk->ChunkCoord = ViewedChunkCoord;
-
-					MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
+					AsyncTask(ENamedThreads::GameThread, [=]
+					{
+						// spawn and add the map chunk
+						AMCChunk* NewMapChunk = Spawn3D(ViewedChunkCoord);
+						MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
+					});
 				}
 			}
 		}
 	}
+}
+
+AMCChunk* AEndlessMap::Spawn3D(const FVector& ViewedChunkCoord) const
+{
+	// spawn and add the map chunk
+	FTransform SpawnTransform;
+	const FActorSpawnParameters SpawnInfo;
+	SpawnTransform.SetLocation(FVector(
+		ViewedChunkCoord.X*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.X,
+		ViewedChunkCoord.Y*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Y,
+		ViewedChunkCoord.Z*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Z));
+
+	AMCChunk* NewMapChunk = GetWorld()->SpawnActor<AMCChunk>(Terrain3DGen, SpawnTransform, SpawnInfo);
+	NewMapChunk->ChunkCoord = ViewedChunkCoord;
+
+	return NewMapChunk;
 }
 

@@ -122,6 +122,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	int Seed = 0; //a seed for randomize the same result
 
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0))
+	int LOD = 1;
+
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* Material;
 
