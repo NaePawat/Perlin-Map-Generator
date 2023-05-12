@@ -42,6 +42,9 @@ protected:
 	UInputAction* MoveRightAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* JumpAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* LookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
@@ -51,7 +54,7 @@ protected:
 	UInputAction* AimAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* JumpAction;
+	UInputAction* ChangeGravAction;
 
 	bool IsFiring = false;
 	bool IsAiming = false;
@@ -64,6 +67,7 @@ protected:
 	void StopFire();
 	void Aim();
 	void StopAim();
+	void ChangeGravityDirection();
 	//#endregion
 
 	//#region Terrain Editing
@@ -84,6 +88,8 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Directional Gravity")
 	USCharacterMovementComponent* GetGravityMovementComponent() const;
 	//#endregion
+
+	FHitResult LineTraceFromCamera() const;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

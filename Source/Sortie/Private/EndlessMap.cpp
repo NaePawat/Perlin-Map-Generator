@@ -2,8 +2,8 @@
 
 
 #include "EndlessMap.h"
-#include "MarchingCube.h"
 #include "Kismet/GameplayStatics.h"
+#include "MCChunk.h"
 #include "SortieCharacterBase.h"
 #include "TerrainChunk.h"
 
@@ -36,7 +36,7 @@ void AEndlessMap::BeginPlay()
 		break;
 	case EGenerateType::PerlinNoise3D:
 		{
-			if(const AMarchingCube* MapChunk = Cast<AMarchingCube>(Terrain3DGen->GetDefaultObject()))
+			if(const AMCChunk* MapChunk = Cast<AMCChunk>(Terrain3DGen->GetDefaultObject()))
 			{
 				ChunkSize = MapChunk->ChunkSize;
 				ChunkScale = MapChunk->Scale;
@@ -117,7 +117,7 @@ void AEndlessMap::UpdateVisibleChunk3D()
 						ViewedChunkCoord.Y*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Y,
 						ViewedChunkCoord.Z*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Z));
 
-					AMarchingCube* NewMapChunk = GetWorld()->SpawnActor<AMarchingCube>(Terrain3DGen, SpawnTransform, SpawnInfo);
+					AMCChunk* NewMapChunk = GetWorld()->SpawnActor<AMCChunk>(Terrain3DGen, SpawnTransform, SpawnInfo);
 					NewMapChunk->ChunkCoord = ViewedChunkCoord;
 
 					MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);

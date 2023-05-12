@@ -8,7 +8,7 @@
 
 //forward declaration
 class ATerrainChunk;
-class AMarchingCube;
+class AMCChunk;
 class ASortieCharacterBase;
 
 UENUM()
@@ -39,7 +39,7 @@ protected:
 	TSubclassOf<ATerrainChunk> Terrain2DGen;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Endless Components")
-	TSubclassOf<AMarchingCube> Terrain3DGen;
+	TSubclassOf<AMCChunk> Terrain3DGen;
 
 	int ChunkSize = 0;
 	float ChunkScale = 0;

@@ -7,7 +7,7 @@
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "MarchingCube.h"
+#include "MCChunk.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -87,6 +87,16 @@ void ASortieCharacterBase::StopAim()
 	IsAiming = false;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
+void ASortieCharacterBase::ChangeGravityDirection()
+{
+	if(const FHitResult HitResult = LineTraceFromCamera(); HitResult.bBlockingHit)
+	{
+		USCharacterMovementComponent* GravityMovement = GetGravityMovementComponent();
+		GravityMovement->SetGravityDirection(CameraComp->GetComponentRotation().Vector());
+	}
+}
+
 void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
 {
 	if(!ToggleAction)
@@ -94,18 +104,7 @@ void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
 		TArray<AActor*> IgnoreActor;
 		IgnoreActor.Init(this, 1);
 			
-		FHitResult HitResult;
-			
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(this);
-			
-		FVector TraceStart = CameraComp->GetComponentLocation();
-		FVector TraceEnd = CameraComp->GetComponentLocation() + CameraComp->GetComponentRotation().Vector() * LineTraceDistance;
-
-		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, HitResult.bBlockingHit ? FColor::Blue : FColor::Red, false, 5.0f, 0, 1.0f);
-			
-		FVector SphereSpawnPoint = HitResult.ImpactPoint;
+		const FVector SphereSpawnPoint = LineTraceFromCamera().ImpactPoint;
 
 		//Set what actor to seek out from it's collision channel
 		TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
@@ -113,11 +112,11 @@ void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
 		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 
 		TArray<AActor*> OutActors;
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SphereSpawnPoint, SphereRadius, TraceObjectTypes, AMarchingCube::StaticClass(), IgnoreActor, OutActors);
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SphereSpawnPoint, SphereRadius, TraceObjectTypes, AMCChunk::StaticClass(), IgnoreActor, OutActors);
 		DrawDebugSphere(GetWorld(), SphereSpawnPoint, SphereRadius, 16 , FColor::Red, false, 5.f, 0u, 0.f);
 		for(AActor* Actor: OutActors)
 		{
-			if(AMarchingCube* ImpactedMarchingCube = Cast<AMarchingCube>(Actor))
+			if(AMCChunk* ImpactedMarchingCube = Cast<AMCChunk>(Actor))
 			{
 				ImpactedMarchingCube->Terraform(SphereSpawnPoint, SphereRadius, Add ? BrushForce : -BrushForce);
 			}
@@ -130,6 +129,22 @@ void ASortieCharacterBase::EditTerrain(const bool Add, bool ToggleAction)
 USCharacterMovementComponent* ASortieCharacterBase::GetGravityMovementComponent() const
 {
 	return Cast<USCharacterMovementComponent>(GetMovementComponent());
+}
+
+FHitResult ASortieCharacterBase::LineTraceFromCamera() const
+{
+	FHitResult HitResult;
+			
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+			
+	FVector TraceStart = CameraComp->GetComponentLocation();
+	FVector TraceEnd = CameraComp->GetComponentLocation() + CameraComp->GetComponentRotation().Vector() * LineTraceDistance;
+
+	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, HitResult.bBlockingHit ? FColor::Blue : FColor::Red, false, 5.0f, 0, 1.0f);
+
+	return HitResult;
 }
 
 // Called when the game starts or when spawned
@@ -170,6 +185,7 @@ void ASortieCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopFire);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Aim);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopAim);
+		EnhancedInputComponent->BindAction(ChangeGravAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::ChangeGravityDirection);
 	}
 
 }

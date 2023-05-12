@@ -1,7 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "MarchingCube.h"
+#include "MCChunk.h"
+#include "AI/NavigationSystemBase.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
 #include "RealtimeMeshLibrary.h"
@@ -57,7 +58,7 @@ int FCube::CalculateConfig()
 //#endregion
 
 // Sets default values
-AMarchingCube::AMarchingCube()
+AMCChunk::AMCChunk()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -70,7 +71,7 @@ AMarchingCube::AMarchingCube()
 }
 
 // Called when the game starts or when spawned
-void AMarchingCube::BeginPlay()
+void AMCChunk::BeginPlay()
 {
 	Super::BeginPlay();
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
@@ -78,14 +79,14 @@ void AMarchingCube::BeginPlay()
 }
 
 // Called every frame
-void AMarchingCube::Tick(float DeltaTime)
+void AMCChunk::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	//TODO: change to LOD of the mesh
 }
 
-FVector AMarchingCube::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const
+FVector AMCChunk::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const
 {
 	if(FMath::IsNearlyZero(NoiseThreshold - CornerIndexA.Value)) return CornerIndexA.Position;
 	if(FMath::IsNearlyZero(NoiseThreshold - CornerIndexB.Value)) return CornerIndexB.Position;
@@ -100,14 +101,14 @@ FVector AMarchingCube::InterpolateEdgePosition(const FGridPoint& CornerIndexA, c
 	);
 }
 
-float AMarchingCube::SmoothStep(const float MinValue, const float MaxValue, const float Dist)
+float AMCChunk::SmoothStep(const float MinValue, const float MaxValue, const float Dist)
 {
 	//interpolation function = -2x^3 + 3x^2
 	const float DistMu = (Dist - MinValue) / (MaxValue - MinValue);
 	return DistMu * (Dist / MinValue * 100);
 }
 
-void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc)
+void AMCChunk::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc)
 {
 	//Let's make it normal for now the mid point between the corner
 	const FVector VertexPos = InterpolateEdgePosition(CornerGridA, CornerGridB);
@@ -116,7 +117,7 @@ void AMarchingCube::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint
 	Normals.Add(FVector(0.f, 0.f, 1.f));
 }
 
-void AMarchingCube::CreateMesh()
+void AMCChunk::CreateProcMesh()
 {
 	/*ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
 	ProcMesh->SetMaterial(0, Material);*/
@@ -135,7 +136,7 @@ void AMarchingCube::CreateMesh()
 	CleanUpData();
 }
 
-void AMarchingCube::UpdateMesh()
+void AMCChunk::UpdateProcMesh()
 {
 	/*ProcMesh->ClearMeshSection(0);
 	ProcMesh->CreateMeshSection(0, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
@@ -153,7 +154,28 @@ void AMarchingCube::UpdateMesh()
 	CleanUpData();
 }
 
-void AMarchingCube::CleanUpData()
+void AMCChunk::CreateNavMesh()
+{
+	if(RealtimeMesh)
+	{
+		//Enable NavMesh Generation
+		FNavigationSystem::UpdateComponentData(*RealtimeMesh);
+		
+		//Build NavMesh
+		FNavigationSystem::Build(*GetWorld());
+	}
+}
+
+void AMCChunk::UpdateNavMesh()
+{
+	if(RealtimeMesh)
+	{
+		//Update NavMesh Component Data
+		FNavigationSystem::UpdateComponentData(*RealtimeMesh);
+	}
+}
+
+void AMCChunk::CleanUpData()
 {
 	Vertices.Empty();
 	Triangles.Empty();
@@ -161,7 +183,7 @@ void AMarchingCube::CleanUpData()
 	Normals.Empty();
 }
 
-void AMarchingCube::CreateProceduralMarchingCubesChunk()
+void AMCChunk::CreateProceduralMarchingCubesChunk()
 {
 	//check chunk location for sampling the noise
 	const FVector MapLoc = GetActorLocation();
@@ -170,10 +192,14 @@ void AMarchingCube::CreateProceduralMarchingCubesChunk()
 	March(MapLoc);
 	
 	//Finished Marching, Let's create a mesh from it
-	if(Vertices.Num() > 0) CreateMesh();
+	if(Vertices.Num() > 0)
+	{
+		CreateProcMesh();
+		//CreateNavMesh();
+	}
 }
 
-void AMarchingCube::MakeGridWithNoise(const FVector& MapLoc)
+void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 {
 	//add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
 	for(int x = 0; x < ChunkSize; x++)
@@ -191,9 +217,7 @@ void AMarchingCube::MakeGridWithNoise(const FVector& MapLoc)
 
 				const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
 
-				//UE_LOG(LogTemp, Warning, TEXT("Perlin Value: %f %f %f --> %f"), SampleX, SampleY, SampleZ, PerlinValue);
 				GridZ.Grids.Add({FVector(x*Scale + MapLoc.X, y*Scale + MapLoc.Y, z*Scale + MapLoc.Z), PerlinValue, PerlinValue >= NoiseThreshold});
-				//DrawDebugBox(GetWorld(), FVector(x * Scale + MapLoc.X, y * Scale + MapLoc.Y, z*Scale + MapLoc.Z), FVector(3, 3, 3),FColor::Green,true,-1,0,0);
 			}
 			GridY.Grids.Add(GridZ);
 		}
@@ -202,7 +226,7 @@ void AMarchingCube::MakeGridWithNoise(const FVector& MapLoc)
 }
 
 // Marching the cube, full speed ahead!
-void AMarchingCube::March(const FVector& MapLoc)
+void AMCChunk::March(const FVector& MapLoc)
 {
 	for(int x = 0; x < ChunkSize - 1; x++)
 	{
@@ -257,7 +281,7 @@ void AMarchingCube::March(const FVector& MapLoc)
 	}
 }
 
-void AMarchingCube::Terraform(const FVector& HitLoc, const float SphereRadius, const float BrushForce)
+void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const float BrushForce)
 {
 	for(int x = 0; x< ChunkSize; x++)
 	{
@@ -279,6 +303,10 @@ void AMarchingCube::Terraform(const FVector& HitLoc, const float SphereRadius, c
 	
 	March(GetActorLocation());
 
-	if (Vertices.Num() > 0) UpdateMesh();
+	if (Vertices.Num() > 0)
+	{
+		UpdateProcMesh();
+		//UpdateNavMesh();
+	}
 }
 

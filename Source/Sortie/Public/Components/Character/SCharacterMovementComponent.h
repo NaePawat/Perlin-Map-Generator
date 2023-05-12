@@ -49,6 +49,14 @@ public:
 	virtual bool IsWithinEdgeTolerance(const FVector& CapsuleLocation, const FVector& TestImpactPoint, const float CapsuleRadius) const override;
 	//#endregion
 
+	//return the normalized direction of the current gravity
+	UFUNCTION(BlueprintCallable, Category="Directional Gravity Movement")
+	virtual FVector GetGravityDirection(bool bAvoidZeroGravity = false) const;
+
+	//Set custom gravity direction (influenced by gravity scale)
+	UFUNCTION(BlueprintCallable, Category="Directional Gravity Movement")
+	virtual void SetGravityDirection(const FVector& NewGravityDirection);
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Debug")
 	bool bGravityDebugLine = false;
@@ -74,14 +82,6 @@ protected:
 	virtual FVector ConstrainInputAcceleration(const FVector& InputAcceleration) const override;
 	virtual FVector ScaleInputAcceleration(const FVector& InputAcceleration) const override;
 	//#endregion
-	
-	//return the normalized direction of the current gravity
-	UFUNCTION(BlueprintCallable, Category="Directional Gravity Movement")
-	virtual FVector GetGravityDirection(bool bAvoidZeroGravity = false) const;
-
-	//Set custom gravity direction (influenced by gravity scale)
-	UFUNCTION(BlueprintCallable, Category="Directional Gravity Movement")
-	virtual void SetGravityDirection(const FVector& NewGravityDirection);
 
 private:
 	UPROPERTY()

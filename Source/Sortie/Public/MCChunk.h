@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "RealtimeMeshActor.h"
 #include "RealtimeMeshSimple.h"
-#include "MarchingCube.generated.h"
+#include "MCChunk.generated.h"
 
 //forward declaration
 class ASortieCharacterBase;
@@ -74,13 +74,13 @@ public:
 //#endregion
 
 UCLASS()
-class SORTIE_API AMarchingCube : public ARealtimeMeshActor
+class SORTIE_API AMCChunk : public ARealtimeMeshActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AMarchingCube();
+	AMCChunk();
 
 protected:
 	UPROPERTY()
@@ -147,7 +147,9 @@ private:
 	static float SmoothStep(const float MinValue, const float MaxValue, const float Dist);
 	
 	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc);
-	void CreateMesh();
-	void UpdateMesh();
+	void CreateProcMesh();
+	void UpdateProcMesh();
+	void CreateNavMesh();
+	void UpdateNavMesh();
 	void CleanUpData();
 };
