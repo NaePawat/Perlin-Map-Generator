@@ -8,10 +8,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "MCChunk.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 ASortieCharacterBase::ASortieCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<USCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -37,8 +37,16 @@ void ASortieCharacterBase::MoveForward(const FInputActionValue& Value)
 	const float DirectionValue = Value.Get<float>();
 	if (Controller && DirectionValue != 0.f)
 	{
-		const FRotator currentRotation = FRotator(0, GetControlRotation().Yaw, 0);
-		AddMovementInput(UKismetMathLibrary::GetForwardVector(currentRotation)*DirectionValue);
+		/*const FRotator currentRotation = FRotator(0, GetControlRotation().Yaw, 0);
+		AddMovementInput(UKismetMathLibrary::GetForwardVector(currentRotation)*DirectionValue);*/
+		FVector ForwardDirection = UKismetMathLibrary::Cross_VectorVector(
+		UKismetMathLibrary::GetRightVector(GetControlRotation()),
+		GetCapsuleComponent()->GetUpVector()
+		);
+
+		ForwardDirection.Normalize();
+		
+		AddMovementInput(ForwardDirection*DirectionValue);
 	}
 }
 
@@ -47,8 +55,8 @@ void ASortieCharacterBase::MoveRight(const FInputActionValue& Value)
 	const float DirectionValue = Value.Get<float>();
 	if (Controller && DirectionValue != 0.f)
 	{
-		const FRotator currentRotation = FRotator(0, GetControlRotation().Yaw, 0);
-		AddMovementInput(UKismetMathLibrary::GetRightVector(currentRotation)*DirectionValue);
+		//const FRotator currentRotation = FRotator(0, GetControlRotation().Yaw, 0);
+		AddMovementInput(UKismetMathLibrary::GetRightVector(GetControlRotation())*DirectionValue);
 	}
 }
 
@@ -94,8 +102,9 @@ void ASortieCharacterBase::ChangeGravityDirection()
 {
 	if(const FHitResult HitResult = LineTraceFromCamera(); HitResult.bBlockingHit)
 	{
+		const FVector NewGravityDirection = CameraComp->GetComponentRotation().Vector();
 		USCharacterMovementComponent* GravityMovement = GetGravityMovementComponent();
-		GravityMovement->SetGravityDirection(CameraComp->GetComponentRotation().Vector());
+		GravityMovement->SetGravityDirection(NewGravityDirection);
 	}
 }
 
@@ -142,6 +151,11 @@ FHitResult ASortieCharacterBase::LineTraceFromCamera() const
 	return HitResult;
 }
 
+FVector ASortieCharacterBase::GetActorAxisZ() const
+{
+	return GetGravityMovementComponent()->GetCapsuleAxisZ();
+}
+
 // Called when the game starts or when spawned
 void ASortieCharacterBase::BeginPlay()
 {
@@ -161,7 +175,6 @@ void ASortieCharacterBase::BeginPlay()
 void ASortieCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input

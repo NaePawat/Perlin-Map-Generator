@@ -57,6 +57,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Directional Gravity Movement")
 	virtual void SetGravityDirection(const FVector& NewGravityDirection);
 
+	FVector GetGravity() const;
+	FVector GetComponentDesiredAxisZ() const;
+	FQuat GetCapsuleRotation() const;
+	FVector GetCapsuleAxisX() const;
+	FVector GetCapsuleAxisZ() const;
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Debug")
 	bool bGravityDebugLine = false;
@@ -90,11 +96,6 @@ private:
 	bool bFallingRemoveSpeedZ;
 	bool bIgnoreBaseRollMove;
 
-	FVector GetGravity() const;
-	FVector GetComponentDesiredAxisZ() const;
-	FQuat GetCapsuleRotation() const;
-	FVector GetCapsuleAxisX() const;
-	FVector GetCapsuleAxisZ() const;
 	FVector GetSafeNormalPrecise(const FVector& Vector) const;
 	void UpdateComponentRotation() const;
 	bool IsWithinEdgeToleranceNew(const FVector& CapsuleLocation, const FVector& CapsuleDown, const FVector& ImpactPoint, const float CapsuleRadius) const;
