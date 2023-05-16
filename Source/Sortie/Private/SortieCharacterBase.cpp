@@ -7,7 +7,7 @@
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "MCChunk.h"
+#include "Map/MCChunk.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -30,6 +30,27 @@ ASortieCharacterBase::ASortieCharacterBase(const FObjectInitializer& ObjectIniti
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	//TODO: Add network replication functionality
+}
+
+// Called when the game starts or when spawned
+void ASortieCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	//setup input
+	if(const APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		if(UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(PlayerMappingContext, 0);
+		}
+	}
+}
+
+// Called every frame
+void ASortieCharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
 }
 
 void ASortieCharacterBase::MoveForward(const FInputActionValue& Value)
@@ -154,27 +175,6 @@ FHitResult ASortieCharacterBase::LineTraceFromCamera() const
 FVector ASortieCharacterBase::GetActorAxisZ() const
 {
 	return GetGravityMovementComponent()->GetCapsuleAxisZ();
-}
-
-// Called when the game starts or when spawned
-void ASortieCharacterBase::BeginPlay()
-{
-	Super::BeginPlay();
-
-	//setup input
-	if(const APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if(UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(PlayerMappingContext, 0);
-		}
-	}
-}
-
-// Called every frame
-void ASortieCharacterBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 // Called to bind functionality to input

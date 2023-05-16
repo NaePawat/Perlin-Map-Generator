@@ -1,11 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "MCChunk.h"
+#include "Map/MCChunk.h"
 #include "Async/Async.h"
 #include "Constant/MarchingConst.h"
-#include "EndlessMap.h"
 #include "Kismet/GameplayStatics.h"
+#include "Map/EndlessMap.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
 
@@ -184,10 +184,10 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 	//Add the grids (this looks ugly a little because unreal doesn't have multidimensional array!)  
 	for(int x = 0; x < ChunkSize/LOD; x++)
 	{
-		FGridArray2D GridY;
+		FGridPointArray2D GridY;
 		for(int y = 0; y < ChunkSize/LOD; y++)
 		{
-			FGridArray1D GridZ;
+			FGridPointArray1D GridZ;
 			for(int z = 0; z < ChunkHeight/LOD; z++)
 			{
 				//we're going to use this for sampling the octaves together

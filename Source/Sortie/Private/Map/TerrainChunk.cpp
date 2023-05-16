@@ -1,9 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "TerrainChunk.h"
-
-#include "EndlessMap.h"
+#include "Map/TerrainChunk.h"
+#include "Map/EndlessMap.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/RandomStream.h"
 #include "ProceduralMeshComponent.h"

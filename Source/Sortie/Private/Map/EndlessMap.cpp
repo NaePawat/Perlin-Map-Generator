@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "EndlessMap.h"
+#include "Map/EndlessMap.h"
 #include "Async/Async.h"
 #include "Kismet/GameplayStatics.h"
-#include "MCChunk.h"
+#include "Map/MCChunk.h"
+#include "Map/TerrainChunk.h"
 #include "SortieCharacterBase.h"
-#include "TerrainChunk.h"
 
 // Sets default values
 AEndlessMap::AEndlessMap()
