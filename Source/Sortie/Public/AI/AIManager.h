@@ -38,12 +38,17 @@ public:
 	// Sets default values for this actor's properties
 	AAIManager();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	//[CoordinateIndex, GridInfo]
+	TMap<FVector, FNavGrid> AINavGrids;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="3D AI Nav")
 	int AIGridScaleToGridPoints = 1;
+
+	void CreateAINavSystem(const FVector& ChunkLoc, int ChunkSize, int ChunkHeight, float ChunkScale);
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, Category="3D AI Nav")
 	TArray<AActor*> BlackListActors;

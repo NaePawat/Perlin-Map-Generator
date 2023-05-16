@@ -9,6 +9,7 @@
 #include "MCChunk.generated.h"
 
 //forward declaration
+class AAIManager;
 class ASortieCharacterBase;
 class UMaterialInterface;
 
@@ -85,7 +86,10 @@ public:
 protected:
 	UPROPERTY()
 	ASortieCharacterBase* Viewer;
-
+	
+	UPROPERTY()
+	AAIManager* AIManager;
+	
 	FGridPointArray3D GridPoints;
 	
 	// Called when the game starts or when spawned

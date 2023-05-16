@@ -2,6 +2,7 @@
 
 
 #include "Map/MCChunk.h"
+#include "AI/AIManager.h"
 #include "Async/Async.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
@@ -73,6 +74,7 @@ void AMCChunk::BeginPlay()
 {
 	Super::BeginPlay();
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
+	AIManager = Cast<AAIManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAIManager::StaticClass()));
 
 	CreateProceduralMarchingCubesChunk();
 }
@@ -214,6 +216,11 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 		}
 		GridPoints.Grids.Add(GridY);
 	}
+
+	const TFuture<void> CreateAINavTask = Async(EAsyncExecution::ThreadPool, [=]
+	{
+		AIManager->CreateAINavSystem(MapLoc, ChunkSize, ChunkHeight, Scale); 
+	});
 }
 
 // Marching the cube, full speed ahead!

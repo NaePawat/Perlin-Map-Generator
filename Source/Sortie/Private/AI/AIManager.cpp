@@ -11,6 +11,33 @@ AAIManager::AAIManager()
 
 }
 
+void AAIManager::CreateAINavSystem(const FVector& ChunkLoc, const int ChunkSize, const int ChunkHeight, const float ChunkScale)
+{
+	const int OffsetX = ChunkLoc.X/ChunkScale;
+	const int OffsetY = ChunkLoc.Y/ChunkScale;
+	const int OffsetZ = ChunkLoc.Z/ChunkScale;
+	
+	for(int x = 0; x < ChunkSize*AIGridScaleToGridPoints; x++)
+	{
+		for(int y = 0; y < ChunkSize*AIGridScaleToGridPoints; y++)
+		{
+			for(int z = 0; z < ChunkHeight*AIGridScaleToGridPoints; z++)
+			{
+				FNavGrid NewGrid = {
+					FVector(x*ChunkScale/AIGridScaleToGridPoints + ChunkLoc.X, y*ChunkScale/AIGridScaleToGridPoints + ChunkLoc.Y, z*ChunkScale/AIGridScaleToGridPoints+ChunkLoc.Z),
+					false,
+					TArray<FVector>()
+				};
+				
+				//DrawDebugPoint(GetWorld(), NewGrid.Position, 2.f, FColor::Red, true, -1.f, 0);
+
+				//Get nearest GridPoint for checking whether if the current coord is valid or not
+				AINavGrids.Add(FVector(x+OffsetX, y+OffsetY, z+OffsetZ), NewGrid);
+			}
+		}
+	}
+}
+
 // Called when the game starts or when spawned
 void AAIManager::BeginPlay()
 {
@@ -25,12 +52,6 @@ void AAIManager::Tick(float DeltaTime)
 }
 
 /*
-void AAIManager::CreateAINavigationSystem()
-{
-	const FVector MapLoc = GetActorLocation();
-	MakeAINavGrid(MapLoc);
-}
-
 void AAIManager::MakeAINavGrid(const FVector& MapLoc)
 {
 	//Create a Pathfinding grid based from the marching cubes grid points
