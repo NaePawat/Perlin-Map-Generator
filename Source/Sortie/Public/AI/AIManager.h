@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Map/MCChunk.h"
 #include "AIManager.generated.h"
 
 //#region Struct
@@ -44,7 +45,13 @@ public:
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="3D AI Nav")
 	int AIGridScaleToGridPoints = 1;
 
-	void CreateAINavSystem(const FVector& ChunkLoc, int ChunkSize, int ChunkHeight, float ChunkScale);
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="3D AI Nav")
+	float NavGridCastDistance = 100.f;
+
+	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc, int ChunkSize, int ChunkHeight, float ChunkScale);
+	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, float ChunkScale) const;
+	bool CheckNavNodeInvalid(const FVector& CenterGrid) const;
+	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
 
 protected:
 	// Called when the game starts or when spawned

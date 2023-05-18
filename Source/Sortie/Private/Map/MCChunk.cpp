@@ -130,6 +130,14 @@ void AMCChunk::CreateProcMesh()
 	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
 	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
+
+	Mesh->OnRenderDataChanged().AddLambda([=](URealtimeMesh* RealtimeMesh, bool bShouldProxyRecreate)
+	{
+		//const TFuture<void> CreateAINavTask = Async(EAsyncExecution::ThreadPool, [=]
+		//{
+			AIManager->CreateAINavSystem(GridPoints, GetActorLocation(), ChunkSize, ChunkHeight, Scale); 
+		//});
+	});
 	
 	CleanUpData();
 }
@@ -216,11 +224,6 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 		}
 		GridPoints.Grids.Add(GridY);
 	}
-
-	const TFuture<void> CreateAINavTask = Async(EAsyncExecution::ThreadPool, [=]
-	{
-		AIManager->CreateAINavSystem(MapLoc, ChunkSize, ChunkHeight, Scale); 
-	});
 }
 
 // Marching the cube, full speed ahead!
