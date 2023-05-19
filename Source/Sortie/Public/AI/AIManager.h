@@ -52,6 +52,8 @@ public:
 	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, float ChunkScale) const;
 	bool CheckNavNodeInvalid(const FVector& CenterGrid) const;
 	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
+
+	TArray<FNavGrid> GetValidGrids();
 	void DebugAINavGrid();
 
 protected:

@@ -143,6 +143,21 @@ TArray<FVector> AAIManager::GetNeighbourGrids(const FVector& DesignatedLoc, floa
 	return NeighbourArray;
 }
 
+TArray<FNavGrid> AAIManager::GetValidGrids()
+{
+	TArray<FVector> OutKeys;
+	TArray<FNavGrid> ValidNavGrids;
+	AINavGrids.GetKeys(OutKeys);
+
+	for(FVector Key : OutKeys)
+	{
+		FNavGrid CurrentGrid = AINavGrids[Key];
+		if (!CurrentGrid.Invalid) ValidNavGrids.Add(CurrentGrid);
+	}
+
+	return ValidNavGrids;
+}
+
 void AAIManager::DebugAINavGrid()
 {
 	TArray<FVector> OutKeys;
