@@ -8,13 +8,24 @@ AAIManager::AAIManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
+
+// Called when the game starts or when spawned
+void AAIManager::BeginPlay()
+{
+	Super::BeginPlay();
+	
+}
+
+// Called every frame
+void AAIManager::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
 
 void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc, const int ChunkSize, const int ChunkHeight, const float ChunkScale)
 {
-	//Clear any existing NavGrid (prevent allocate crash)
-	
 	const int OffsetX = ChunkLoc.X/ChunkScale;
 	const int OffsetY = ChunkLoc.Y/ChunkScale;
 	const int OffsetZ = ChunkLoc.Z/ChunkScale;
@@ -43,9 +54,7 @@ void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FV
 					Invalid,
 					NeighbourArray
 				};
-
-				DrawDebugPoint(GetWorld(), NewGrid.Position, 2.f, NewGrid.Invalid ? FColor::Red : FColor::Green, true, -1.f, 0);
-
+				
 				if(AINavGrids.Contains(FVector(x+OffsetX, y+OffsetY, z+OffsetZ)))
 				{
 					AINavGrids[FVector(x+OffsetX, y+OffsetY, z+OffsetZ)] = NewGrid;
@@ -134,15 +143,14 @@ TArray<FVector> AAIManager::GetNeighbourGrids(const FVector& DesignatedLoc, floa
 	return NeighbourArray;
 }
 
-// Called when the game starts or when spawned
-void AAIManager::BeginPlay()
+void AAIManager::DebugAINavGrid()
 {
-	Super::BeginPlay();
-	
-}
+	TArray<FVector> OutKeys;
+	AINavGrids.GetKeys(OutKeys);
 
-// Called every frame
-void AAIManager::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+	for(FVector Key : OutKeys)
+	{
+		auto [Position, Invalid, Neighbours] = AINavGrids[Key];
+		DrawDebugPoint(GetWorld(), Position, 2.f, Invalid ? FColor::Red : FColor::Green, true, -1.f, 0);
+	}
 }

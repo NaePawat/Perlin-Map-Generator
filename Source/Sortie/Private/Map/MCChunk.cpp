@@ -57,6 +57,18 @@ int FCube::CalculateConfig()
 	return Config;
 }
 
+uint32 FAIAsyncTask::Run()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Dowork"));
+	AIManager->CreateAINavSystem(GridPoints, ChunkLoc, ChunkSize, ChunkHeight, ChunkScale);
+	return 0;
+}
+
+void FAIAsyncTask::Stop()
+{
+	FRunnable::Stop();
+}
+
 //#endregion
 
 // Sets default values
@@ -131,13 +143,9 @@ void AMCChunk::CreateProcMesh()
 	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 
-	Mesh->OnRenderDataChanged().AddLambda([=](URealtimeMesh* RealtimeMesh, bool bShouldProxyRecreate)
-	{
-		//const TFuture<void> CreateAINavTask = Async(EAsyncExecution::ThreadPool, [=]
-		//{
-			AIManager->CreateAINavSystem(GridPoints, GetActorLocation(), ChunkSize, ChunkHeight, Scale); 
-		//});
-	});
+	//Mesh->OnRenderDataChanged().AddLambda([=](URealtimeMesh* RealtimeMesh, bool bShouldProxyRecreate)
+	//{
+	//});
 	
 	CleanUpData();
 }
@@ -153,7 +161,9 @@ void AMCChunk::UpdateProcMesh()
 
 	Mesh->RemoveSection(MeshSection);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
-	
+
+	FRunnableThread::Create(new FAIAsyncTask(AIManager, GridPoints, GetActorLocation(), ChunkSize, ChunkHeight, Scale), TEXT("AI Path Task"));
+	AIManager->DebugAINavGrid();
 	CleanUpData();
 }
 

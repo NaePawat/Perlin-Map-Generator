@@ -72,6 +72,25 @@ public:
 	int Config = 0;
 	int CalculateConfig();
 };
+
+class FAIAsyncTask : public FRunnable
+{
+public:
+	FAIAsyncTask(AAIManager* IAim, const FGridPointArray3D& IGpa3D, const FVector& IChunkLoc, const int ISize, const int IHeight, const float IScale) :
+	AIManager(IAim), GridPoints(IGpa3D), ChunkLoc(IChunkLoc), ChunkSize(ISize), ChunkHeight(IHeight), ChunkScale(IScale)
+	{}
+
+	virtual bool Init() override { return true;}
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+private:
+	AAIManager* AIManager;
+	FGridPointArray3D GridPoints;
+	FVector ChunkLoc;
+	int ChunkSize;
+	int ChunkHeight;
+	float ChunkScale;
+};
 //#endregion
 
 UCLASS()
