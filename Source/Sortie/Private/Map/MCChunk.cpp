@@ -163,7 +163,7 @@ void AMCChunk::UpdateProcMesh()
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 
 	FRunnableThread::Create(new FAIAsyncTask(AIManager, GridPoints, GetActorLocation(), ChunkSize, ChunkHeight, Scale), TEXT("AI Path Task"));
-	AIManager->DebugAINavGrid();
+	//AIManager->DebugAINavGrid();
 	CleanUpData();
 }
 

@@ -8,6 +8,7 @@
 #include "SortieCharacterBase.generated.h"
 
 //forward declaration
+class ASortieAI;
 class UCameraComponent;
 class USpringArmComponent;
 class USCharacterMovementComponent;
@@ -56,6 +57,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* ChangeGravAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* SpawnAIAction;
+
 	bool IsFiring = false;
 	bool IsAiming = false;
 	
@@ -68,6 +72,7 @@ protected:
 	void Aim();
 	void StopAim();
 	void ChangeGravityDirection();
+	void SpawnAI();
 	//#endregion
 
 	//#region Terrain Editing
@@ -87,6 +92,11 @@ protected:
 	//#region Gravitational Movement
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Directional Gravity")
 	USCharacterMovementComponent* GetGravityMovementComponent() const;
+	//#endregion
+
+	//#region AI
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="AI")
+	TSubclassOf<ASortieAI> SortieAI;
 	//#endregion
 
 	FHitResult LineTraceFromCamera() const;

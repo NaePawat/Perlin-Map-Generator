@@ -2,6 +2,7 @@
 
 
 #include "SortieCharacterBase.h"
+#include "AI/SortieAI.h"
 #include "Camera/CameraComponent.h"
 #include "Components/Character/SCharacterMovementComponent.h"
 #include "Components/InputComponent.h"
@@ -129,6 +130,20 @@ void ASortieCharacterBase::ChangeGravityDirection()
 	}
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
+void ASortieCharacterBase::SpawnAI()
+{
+	if(const FHitResult HitResult = LineTraceFromCamera(); HitResult.bBlockingHit)
+	{
+		FTransform SpawnTransform;
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		SpawnTransform.SetLocation(HitResult.Location);
+
+		GetWorld()->SpawnActor<ASortieAI>(SortieAI, SpawnTransform, SpawnInfo);
+	}
+}
+
 void ASortieCharacterBase::EditTerrain(const bool Add, const bool ToggleAction) const
 {
 	if(!ToggleAction)
@@ -194,7 +209,7 @@ void ASortieCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::Aim);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ASortieCharacterBase::StopAim);
 		EnhancedInputComponent->BindAction(ChangeGravAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::ChangeGravityDirection);
+		EnhancedInputComponent->BindAction(SpawnAIAction, ETriggerEvent::Triggered, this, &ASortieCharacterBase::SpawnAI);
 	}
-
 }
 

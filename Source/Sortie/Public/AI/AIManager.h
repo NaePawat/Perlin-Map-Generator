@@ -30,6 +30,52 @@ struct FNavGridArray3D
 	TArray<FNavGridArray2D> Grids;
 };
 //#endregion
+
+//#region Helper Class
+class AIGridData
+{
+public:
+	float GScore;
+	float FScore;
+	FVector CameFrom;
+	FVector Coord;
+	float TimeToReach;
+
+	AIGridData()
+	{
+		GScore = std::numeric_limits<float>::max();
+		FScore = std::numeric_limits<float>::max();
+		CameFrom = FVector(-1,-1,-1);
+		Coord = FVector(0,0,0);
+		TimeToReach = std::numeric_limits<float>::max();
+	}
+	
+	AIGridData(const FNavGrid& NavGrid)
+	{
+		GScore = std::numeric_limits<float>::max();
+		FScore = std::numeric_limits<float>::max();
+		CameFrom = FVector(-1,-1,-1);
+		Coord = NavGrid.Position;
+		TimeToReach = std::numeric_limits<float>::max();
+	}
+};
+
+struct FAIGridData1D
+{
+	TArray<AIGridData> Grids;
+};
+
+struct FAIGridData2D
+{
+	TArray<FAIGridData1D> Grids;
+};
+
+struct FAIGridData3D
+{
+	TArray<FAIGridData2D> Grids;
+};
+//#endregion
+
 UCLASS()
 class SORTIE_API AAIManager : public AActor
 {
@@ -50,10 +96,11 @@ public:
 
 	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc, int ChunkSize, int ChunkHeight, float ChunkScale);
 	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, float ChunkScale) const;
-	bool CheckNavNodeInvalid(const FVector& CenterGrid) const;
-	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
+	FNavGrid GetClosestNavGridInfo(const FVector& DesignatedLoc, float Scale);
+	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid, float Scale);
 
 	TArray<FNavGrid> GetValidGrids();
+	void DebugLogNavGrid() const;
 	void DebugAINavGrid();
 
 protected:
@@ -62,6 +109,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category="3D AI Nav")
 	TArray<AActor*> BlackListActors;
+
+	bool CheckNavNodeInvalid(const FVector& CenterGrid) const;
+	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
 
 public:	
 	// Called every frame

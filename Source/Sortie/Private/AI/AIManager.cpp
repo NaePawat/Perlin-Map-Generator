@@ -7,7 +7,7 @@
 AAIManager::AAIManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 // Called when the game starts or when spawned
@@ -70,10 +70,52 @@ void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FV
 
 FGridPoint AAIManager::GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, float ChunkScale) const
 {
+	//TODO: DesignatedLoc is not in the chunk loc (every GridPoints chunk start at (0,0,0))
 	return GridPoints.
 		Grids[FMath::CeilToInt(DesignatedLoc.X/ChunkScale)].
 		Grids[FMath::CeilToInt(DesignatedLoc.Y/ChunkScale)].
 		Grids[FMath::FloorToInt(DesignatedLoc.Z/ChunkScale)];
+}
+
+FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc, const float Scale)
+{
+	//Convert the Designated Loc to the nearest Grid first
+	const FVector DesiredPos = FVector(
+		static_cast<float>(FMath::RoundToInt(DesignatedLoc.X / Scale)),
+		static_cast<float>(FMath::RoundToInt(DesignatedLoc.Y / Scale)),
+		static_cast<float>(FMath::RoundToInt(DesignatedLoc.Z / Scale)));
+
+	if (AINavGrids.Contains(DesiredPos))
+	{
+		FNavGrid ClosestGrid = AINavGrids[DesiredPos];
+		//if invalid, find the closest valid one
+		ClosestGrid = GetClosestValidNavGrid(ClosestGrid, Scale);
+		return ClosestGrid;
+	}
+
+	return {FVector(), false, TArray<FVector>()};
+}
+
+//Recursive check for the available Valid grids
+FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, float Scale)
+{
+	if (ClosestGrid.Invalid)
+	{
+		for(const FVector Neighbour : ClosestGrid.Neighbours)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Contains: %d %s"), AINavGrids.Contains(Neighbour / Scale), *Neighbour.ToString());
+			//if neighbour is registered in AINavGrid
+			if (AINavGrids.Contains(Neighbour / Scale))
+			{
+				FNavGrid NeighbourGrid = AINavGrids[Neighbour / Scale];
+				if (!NeighbourGrid.Invalid) return AINavGrids[Neighbour / Scale];
+				
+				ClosestGrid = GetClosestValidNavGrid(AINavGrids[Neighbour / Scale], Scale);
+			}
+		}
+	}
+
+	return ClosestGrid;
 }
 
 bool AAIManager::CheckNavNodeInvalid(const FVector& CenterGrid) const
@@ -156,6 +198,17 @@ TArray<FNavGrid> AAIManager::GetValidGrids()
 	}
 
 	return ValidNavGrids;
+}
+
+void AAIManager::DebugLogNavGrid() const
+{
+	TArray<FVector> OutKeys;
+	AINavGrids.GetKeys(OutKeys);
+
+	for(FVector Key : OutKeys)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridPos: %s"), *Key.ToString());
+	}
 }
 
 void AAIManager::DebugAINavGrid()
