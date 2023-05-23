@@ -79,23 +79,23 @@ TArray<FNavGrid> UAIPathFinder::ReconstructPath(AIGridData Start, AIGridData Cur
 	CornerPoints = TArray<FNavGrid>();
 	TArray<FNavGrid> TotPaths;
 
-	FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
+	FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord / AIManager->MapChunk->Scale];
 	TotPaths.Add(CurrentGrid);
 
-	FNavGrid CameFromGrid = AIManager->AINavGrids[Current.CameFrom / 100];
+	FNavGrid CameFromGrid = AIManager->AINavGrids[Current.CameFrom / AIManager->MapChunk->Scale];
 
 	FVector Direction = CurrentGrid.Position - CameFromGrid.Position;
 	Direction.Normalize();
 
 	CornerPoints.Add(CurrentGrid);
 
-	UE_LOG(LogTemp, Warning, TEXT("ReconstructPath CurrentGrid: %s"), *Current.Coord.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("ReconstructPath CurrentGrid: %s"), *Current.Coord.ToString());
 	
 	//int Count = 0;
 	while (CameFromGrid.Position != Start.Coord)
 	{
-		CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
-		CameFromGrid = AIManager->AINavGrids[Current.CameFrom / 100];
+		CurrentGrid = AIManager->AINavGrids[Current.Coord / AIManager->MapChunk->Scale];
+		CameFromGrid = AIManager->AINavGrids[Current.CameFrom / AIManager->MapChunk->Scale];
 
 		FVector Dir = CurrentGrid.Position - CameFromGrid.Position;
 		Dir.Normalize();
@@ -109,7 +109,7 @@ TArray<FNavGrid> UAIPathFinder::ReconstructPath(AIGridData Start, AIGridData Cur
 		Current = DataSet[Current.CameFrom];
 	}
 
-	CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
+	CurrentGrid = AIManager->AINavGrids[Current.Coord / AIManager->MapChunk->Scale];
 	CornerPoints.Add(CurrentGrid);
 
 	return TotPaths;
@@ -120,8 +120,8 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	const FVector CurrentLoc = GetOwner()->GetActorLocation();
 	StartLoc = CurrentLoc;
 	EndLoc = Goal;
-	StartGrid = AIManager->GetClosestNavGridInfo(CurrentLoc, 100);
-	EndGrid = AIManager->GetClosestNavGridInfo(Goal, 100);
+	StartGrid = AIManager->GetClosestNavGridInfo(CurrentLoc);
+	EndGrid = AIManager->GetClosestNavGridInfo(Goal);
 	//UE_LOG(LogTemp, Warning, TEXT("StartLoc: %s %d EndLoc %s %d"), *StartGrid.Position.ToString(), StartGrid.Invalid, *EndGrid.Position.ToString(), EndGrid.Invalid);
 	DrawDebugPoint(GetWorld(), StartGrid.Position, 10.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
 	DrawDebugPoint(GetWorld(), EndGrid.Position, 10.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
@@ -147,7 +147,7 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	while (OpenSet.Num() > 0)
 	{
 		AIGridData Current = OpenSet[0];
-		UE_LOG(LogTemp,Warning, TEXT("Current: %s, CameFrom: %s"), *Current.Coord.ToString(), *Current.CameFrom.ToString());
+		//UE_LOG(LogTemp,Warning, TEXT("Current: %s, CameFrom: %s"), *Current.Coord.ToString(), *Current.CameFrom.ToString());
 		DrawDebugPoint(GetWorld(), Current.Coord, 4.f, FColor::Green, true, -1.f, 0);
 		if(Current.Coord == EndGrid.Position)
 		{
@@ -166,13 +166,13 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 		OpenSet.RemoveAt(0);
 		HeapModifyDeletion(OpenSet, 0);
 
-		FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
+		FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord / AIManager->MapChunk->Scale];
 
 		for(int i = 0; i<CurrentGrid.Neighbours.Num(); i++)
 		{
-			if(AIManager->AINavGrids.Contains(CurrentGrid.Neighbours[i] / 100))
+			if(AIManager->AINavGrids.Contains(CurrentGrid.Neighbours[i]))
 			{
-				FNavGrid NeighbourGrid = AIManager->AINavGrids[CurrentGrid.Neighbours[i] / 100];
+				FNavGrid NeighbourGrid = AIManager->AINavGrids[CurrentGrid.Neighbours[i]];
 				AIGridData Neighbour;
 				bool bNeighbourPassed = true;
 
@@ -195,7 +195,6 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 				{
 					if (const float TentativeScore = Current.GScore + 100; TentativeScore < Neighbour.GScore)
 					{
-						UE_LOG(LogTemp,Warning, TEXT("Current for neighbour: %s %f"), *Current.Coord.ToString(), Current.GScore);
 						DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Cyan, true, -1.f, 0);
 						Neighbour.CameFrom = Current.Coord;
 						Neighbour.GScore = TentativeScore;

@@ -7,6 +7,9 @@
 #include "AIManager.h"
 #include "AIPathFinder.generated.h"
 
+//forward declaration
+class AMCChunk;
+
 enum class EPathFindingStatus
 {
 	Invalid,
@@ -49,7 +52,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Pathfinding")
 	AAIManager* AIManager;
 
 	FTimerHandle MoveTimer;

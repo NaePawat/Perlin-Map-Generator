@@ -14,7 +14,7 @@ AAIManager::AAIManager()
 void AAIManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	MapChunk = ChunkClass->GetDefaultObject<AMCChunk>();
 }
 
 // Called every frame
@@ -23,31 +23,31 @@ void AAIManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-
-void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc, const int ChunkSize, const int ChunkHeight, const float ChunkScale)
+//TODO: Frequent MeshUpdate can cause the AI generation to access the null memory (it's a call in another thread after all)
+void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc)
 {
-	const int OffsetX = ChunkLoc.X/ChunkScale;
-	const int OffsetY = ChunkLoc.Y/ChunkScale;
-	const int OffsetZ = ChunkLoc.Z/ChunkScale;
+	const int OffsetX = ChunkLoc.X/MapChunk->Scale;
+	const int OffsetY = ChunkLoc.Y/MapChunk->Scale;
+	const int OffsetZ = ChunkLoc.Z/MapChunk->Scale;
 	
-	for(int x = 0; x < ChunkSize*AIGridScaleToGridPoints; x++)
+	for(int x = 0; x < MapChunk->ChunkSize*AIGridScaleToGridPoints; x++)
 	{
-		for(int y = 0; y < ChunkSize*AIGridScaleToGridPoints; y++)
+		for(int y = 0; y < MapChunk->ChunkSize*AIGridScaleToGridPoints; y++)
 		{
-			for(int z = 0; z < ChunkHeight*AIGridScaleToGridPoints; z++)
+			for(int z = 0; z < MapChunk->ChunkHeight*AIGridScaleToGridPoints; z++)
 			{
 				//Current AI Grid Loc
-				const FVector CurrentPosition = FVector(x*ChunkScale/AIGridScaleToGridPoints + ChunkLoc.X, y*ChunkScale/AIGridScaleToGridPoints + ChunkLoc.Y, z*ChunkScale/AIGridScaleToGridPoints+ChunkLoc.Z);
+				const FVector CurrentPosition = FVector(x*MapChunk->Scale/AIGridScaleToGridPoints + ChunkLoc.X, y*MapChunk->Scale/AIGridScaleToGridPoints + ChunkLoc.Y, z*MapChunk->Scale/AIGridScaleToGridPoints+ChunkLoc.Z);
 
 				//Check the nearest Actor to determine whether there's a surface or not
-				const auto [Position, Value, On] = GetClosestGridInfo(GridPoints, CurrentPosition, ChunkScale);
+				const auto [Position, Value, On] = GetClosestGridInfo(GridPoints, CurrentPosition, ChunkLoc);
 
 				//Check other neighbour of the grid, are there any obstacle?
 				const bool Invalid = On ? true : CheckNavNodeInvalid(Position);
 
 				//Add the neighbours
 				//Just FVector position is enough and we'll look up in the TMap later
-				const TArray<FVector> NeighbourArray = GetNeighbourGrids(CurrentPosition, ChunkScale);
+				const TArray<FVector> NeighbourArray = GetNeighbourGrids(CurrentPosition, MapChunk->Scale);
 				
 				FNavGrid NewGrid = {
 					CurrentPosition,
@@ -55,7 +55,7 @@ void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FV
 					NeighbourArray
 				};
 				
-				if(AINavGrids.Contains(FVector(x+OffsetX, y+OffsetY, z+OffsetZ)))
+				if(AINavGrids.Num() > 0 && AINavGrids.Contains(FVector(x+OffsetX, y+OffsetY, z+OffsetZ)))
 				{
 					AINavGrids[FVector(x+OffsetX, y+OffsetY, z+OffsetZ)] = NewGrid;
 				}
@@ -68,28 +68,28 @@ void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FV
 	}
 }
 
-FGridPoint AAIManager::GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, float ChunkScale) const
+FGridPoint AAIManager::GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, const FVector& ChunkLoc) const
 {
 	//TODO: DesignatedLoc is not in the chunk loc (every GridPoints chunk start at (0,0,0))
 	return GridPoints.
-		Grids[FMath::CeilToInt(DesignatedLoc.X/ChunkScale)].
-		Grids[FMath::CeilToInt(DesignatedLoc.Y/ChunkScale)].
-		Grids[FMath::FloorToInt(DesignatedLoc.Z/ChunkScale)];
+		Grids[FMath::CeilToInt(FMath::Abs(DesignatedLoc.X - ChunkLoc.X)/MapChunk->Scale)].
+		Grids[FMath::CeilToInt(FMath::Abs(DesignatedLoc.Y - ChunkLoc.Y)/MapChunk->Scale)].
+		Grids[FMath::FloorToInt(FMath::Abs(DesignatedLoc.Z - ChunkLoc.Z)/MapChunk->Scale)];
 }
 
-FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc, const float Scale)
+FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 {
 	//Convert the Designated Loc to the nearest Grid first
 	const FVector DesiredPos = FVector(
-		static_cast<float>(FMath::RoundToInt(DesignatedLoc.X / Scale)),
-		static_cast<float>(FMath::RoundToInt(DesignatedLoc.Y / Scale)),
-		static_cast<float>(FMath::RoundToInt(DesignatedLoc.Z / Scale)));
+		static_cast<float>(FMath::RoundToInt(DesignatedLoc.X / MapChunk->Scale)),
+		static_cast<float>(FMath::RoundToInt(DesignatedLoc.Y / MapChunk->Scale)),
+		static_cast<float>(FMath::RoundToInt(DesignatedLoc.Z / MapChunk->Scale)));
 
 	if (AINavGrids.Contains(DesiredPos))
 	{
 		FNavGrid ClosestGrid = AINavGrids[DesiredPos];
 		//if invalid, find the closest valid one
-		ClosestGrid = GetClosestValidNavGrid(ClosestGrid, Scale);
+		ClosestGrid = GetClosestValidNavGrid(ClosestGrid);
 		return ClosestGrid;
 	}
 
@@ -97,19 +97,19 @@ FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc, const f
 }
 
 //Recursive check for the available Valid grids
-FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, float Scale)
+FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid)
 {
 	if (ClosestGrid.Invalid)
 	{
 		for(const FVector Neighbour : ClosestGrid.Neighbours)
 		{
 			//if neighbour is registered in AINavGrid
-			if (AINavGrids.Contains(Neighbour / Scale))
+			if (AINavGrids.Contains(Neighbour / MapChunk->Scale))
 			{
-				FNavGrid NeighbourGrid = AINavGrids[Neighbour / Scale];
-				if (!NeighbourGrid.Invalid) return AINavGrids[Neighbour / Scale];
+				FNavGrid NeighbourGrid = AINavGrids[Neighbour / MapChunk->Scale];
+				if (!NeighbourGrid.Invalid) return AINavGrids[Neighbour / MapChunk->Scale];
 				
-				ClosestGrid = GetClosestValidNavGrid(AINavGrids[Neighbour / Scale], Scale);
+				ClosestGrid = GetClosestValidNavGrid(AINavGrids[Neighbour / MapChunk->Scale]);
 			}
 		}
 	}
@@ -152,34 +152,34 @@ TArray<FVector> AAIManager::GetNeighbourGrids(const FVector& DesignatedLoc, floa
 	//Just FVector position is enough and we'll look up in the TMap later
 	//Hard code for optimization
 	TArray<FVector> NeighbourArray;
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
 
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
 
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z));
-	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints));
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y - ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z - ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z) / ChunkScale);
+	NeighbourArray.Add(FVector(DesignatedLoc.X + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Y + ChunkScale/AIGridScaleToGridPoints,DesignatedLoc.Z + ChunkScale/AIGridScaleToGridPoints) / ChunkScale);
 
 	return NeighbourArray;
 }
@@ -210,6 +210,7 @@ void AAIManager::DebugLogNavGrid() const
 	}
 }
 
+//This will be expensive, but visualize!
 void AAIManager::DebugAINavGrid()
 {
 	TArray<FVector> OutKeys;

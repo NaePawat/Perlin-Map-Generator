@@ -60,7 +60,7 @@ int FCube::CalculateConfig()
 uint32 FAIAsyncTask::Run()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
-	AIManager->CreateAINavSystem(GridPoints, ChunkLoc, ChunkSize, ChunkHeight, ChunkScale);
+	AIManager->CreateAINavSystem(GridPoints, ChunkLoc);
 	return 0;
 }
 

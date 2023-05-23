@@ -94,10 +94,13 @@ public:
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="3D AI Nav")
 	float NavGridCastDistance = 100.f;
 
-	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc, int ChunkSize, int ChunkHeight, float ChunkScale);
-	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, float ChunkScale) const;
-	FNavGrid GetClosestNavGridInfo(const FVector& DesignatedLoc, float Scale);
-	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid, float Scale);
+	UPROPERTY()
+	AMCChunk* MapChunk;
+
+	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc);
+	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, const FVector& ChunkLoc) const;
+	FNavGrid GetClosestNavGridInfo(const FVector& DesignatedLoc);
+	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid);
 
 	TArray<FNavGrid> GetValidGrids();
 	void DebugLogNavGrid() const;
@@ -112,6 +115,9 @@ protected:
 
 	bool CheckNavNodeInvalid(const FVector& CenterGrid) const;
 	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
+
+	UPROPERTY(EditAnywhere, Category="3D AI Nav")
+	TSubclassOf<AMCChunk> ChunkClass;
 
 public:	
 	// Called every frame
