@@ -28,7 +28,8 @@ void ASortieAI::BeginPlay()
 		{
 			PointA = GetActorLocation();
 			PointB = Player->GetActorLocation();
-			GetWorld()->GetTimerManager().SetTimer(MoveTimerHandle, this, &ASortieAI::MoveFromAToB, Interval, true, Interval);
+			//GetWorld()->GetTimerManager().SetTimer(MoveTimerHandle, this, &ASortieAI::MoveFromAToB, Interval, true, Interval);
+			MoveFromAToB();
 		}
 	}
 }

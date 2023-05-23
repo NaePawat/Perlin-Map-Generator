@@ -32,7 +32,8 @@ void UAIPathFinder::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	// ...
 }
 
-void UAIPathFinder::Heapify(TArray<AIGridData> GridData, const int Index)
+//Heap Optimization
+void UAIPathFinder::HeapModify(TArray<AIGridData> GridData, const int Index)
 {
 	const int Parent = (Index - 1)/2;
 	if(Parent > -1)
@@ -42,12 +43,13 @@ void UAIPathFinder::Heapify(TArray<AIGridData> GridData, const int Index)
 			const AIGridData Aom = GridData[Index];
 			GridData[Index] = GridData[Parent];
 			GridData[Parent] = Aom;
-			Heapify(GridData, Parent);
+			HeapModify(GridData, Parent);
 		}
 	}
 }
 
-void UAIPathFinder::HeapifyDeletion(TArray<AIGridData> GridData, const int Index)
+//Heap Optimization
+void UAIPathFinder::HeapModifyDeletion(TArray<AIGridData> GridData, const int Index)
 {
 	int Smallest = Index;
 	const int Left = 2 * Index + 1;
@@ -67,8 +69,8 @@ void UAIPathFinder::HeapifyDeletion(TArray<AIGridData> GridData, const int Index
 		GridData[Index] = GridData[Smallest];
 		GridData[Smallest] = Aom;
 
-		// Recursively heapify the affected sub-tree
-		HeapifyDeletion(GridData, Smallest);
+		// Recursively heap modify the affected sub-tree
+		HeapModifyDeletion(GridData, Smallest);
 	}
 }
 
@@ -77,22 +79,23 @@ TArray<FNavGrid> UAIPathFinder::ReconstructPath(AIGridData Start, AIGridData Cur
 	CornerPoints = TArray<FNavGrid>();
 	TArray<FNavGrid> TotPaths;
 
-	FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord];
+	FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
 	TotPaths.Add(CurrentGrid);
 
-	FNavGrid CameFromGrid = AIManager->AINavGrids[Current.CameFrom];
+	FNavGrid CameFromGrid = AIManager->AINavGrids[Current.CameFrom / 100];
 
 	FVector Direction = CurrentGrid.Position - CameFromGrid.Position;
 	Direction.Normalize();
 
 	CornerPoints.Add(CurrentGrid);
+
+	UE_LOG(LogTemp, Warning, TEXT("ReconstructPath CurrentGrid: %s"), *Current.Coord.ToString());
 	
-	int Count = 0;
-	while (Current.CameFrom.X != -1 && Count < 10000)
+	//int Count = 0;
+	while (CameFromGrid.Position != Start.Coord)
 	{
-		CurrentGrid = AIManager->AINavGrids[Current.Coord];
-		AIGridData CameFromGridData = DataSet[Current.CameFrom];
-		CameFromGrid = AIManager->AINavGrids[Current.CameFrom];
+		CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
+		CameFromGrid = AIManager->AINavGrids[Current.CameFrom / 100];
 
 		FVector Dir = CurrentGrid.Position - CameFromGrid.Position;
 		Dir.Normalize();
@@ -106,7 +109,7 @@ TArray<FNavGrid> UAIPathFinder::ReconstructPath(AIGridData Start, AIGridData Cur
 		Current = DataSet[Current.CameFrom];
 	}
 
-	CurrentGrid = AIManager->AINavGrids[Current.Coord];
+	CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
 	CornerPoints.Add(CurrentGrid);
 
 	return TotPaths;
@@ -119,9 +122,9 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	EndLoc = Goal;
 	StartGrid = AIManager->GetClosestNavGridInfo(CurrentLoc, 100);
 	EndGrid = AIManager->GetClosestNavGridInfo(Goal, 100);
-	UE_LOG(LogTemp, Warning, TEXT("StartLoc: %s %d EndLoc %s %d"), *StartGrid.Position.ToString(), StartGrid.Invalid, *EndGrid.Position.ToString(), EndGrid.Invalid);
-	DrawDebugPoint(GetWorld(), StartGrid.Position, 4.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
-	DrawDebugPoint(GetWorld(), EndGrid.Position, 4.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+	//UE_LOG(LogTemp, Warning, TEXT("StartLoc: %s %d EndLoc %s %d"), *StartGrid.Position.ToString(), StartGrid.Invalid, *EndGrid.Position.ToString(), EndGrid.Invalid);
+	DrawDebugPoint(GetWorld(), StartGrid.Position, 10.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+	DrawDebugPoint(GetWorld(), EndGrid.Position, 10.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
 
 	if(StartGrid.Position == EndGrid.Position || StartGrid.Invalid || EndGrid.Invalid)
 	{
@@ -130,23 +133,27 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 		return Status;
 	}
 
-	/*
+	
 	TMap<FVector, AIGridData> DataSet;
 	TArray<AIGridData> OpenSet;
 
 	AIGridData StartingGrid = AIGridData(StartGrid);
-	DataSet[StartingGrid.Coord] = StartingGrid;
+	DataSet.Add(StartingGrid.Coord, StartingGrid);
 	StartingGrid.GScore = 0;
 	StartingGrid.TimeToReach = 0;
-
 	OpenSet.Add(StartingGrid);
+	UE_LOG(LogTemp,Warning, TEXT("Starting Grid: %s"), *StartingGrid.Coord.ToString());
 
 	while (OpenSet.Num() > 0)
 	{
 		AIGridData Current = OpenSet[0];
-		if(Current.Coord == EndLoc)
+		UE_LOG(LogTemp,Warning, TEXT("Current: %s, CameFrom: %s"), *Current.Coord.ToString(), *Current.CameFrom.ToString());
+		DrawDebugPoint(GetWorld(), Current.Coord, 4.f, FColor::Green, true, -1.f, 0);
+		if(Current.Coord == EndGrid.Position)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Calculated until the target"));
 			TotalPaths = ReconstructPath(StartingGrid, Current, DataSet);
+			UE_LOG(LogTemp,Warning, TEXT("TotalPaths: %d"), TotalPaths.Num());
 			if(!SuppressMovement)
 			{
 				Status = EPathFindingStatus::InProgress;
@@ -157,23 +164,23 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 		}
 
 		OpenSet.RemoveAt(0);
-		HeapifyDeletion(OpenSet, 0);
+		HeapModifyDeletion(OpenSet, 0);
 
-		FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord];
+		FNavGrid CurrentGrid = AIManager->AINavGrids[Current.Coord / 100];
 
 		for(int i = 0; i<CurrentGrid.Neighbours.Num(); i++)
 		{
-			if(AIManager->AINavGrids.Contains(CurrentGrid.Neighbours[i]))
+			if(AIManager->AINavGrids.Contains(CurrentGrid.Neighbours[i] / 100))
 			{
-				FNavGrid NeighbourGrid = AIManager->AINavGrids[CurrentGrid.Neighbours[i]];
+				FNavGrid NeighbourGrid = AIManager->AINavGrids[CurrentGrid.Neighbours[i] / 100];
 				AIGridData Neighbour;
 				bool bNeighbourPassed = true;
 
 				//Neighbour is not in the dataset yet
 				if(!DataSet.Contains(NeighbourGrid.Position))
 				{
-					Neighbour = AIGridData(Neighbour);
-					DataSet[Neighbour.Coord] = Neighbour;
+					Neighbour = AIGridData(NeighbourGrid);
+					DataSet.Add(Neighbour.Coord, Neighbour);
 					bNeighbourPassed = false;
 				}
 				else
@@ -188,23 +195,30 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 				{
 					if (const float TentativeScore = Current.GScore + 100; TentativeScore < Neighbour.GScore)
 					{
+						UE_LOG(LogTemp,Warning, TEXT("Current for neighbour: %s %f"), *Current.Coord.ToString(), Current.GScore);
+						DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Cyan, true, -1.f, 0);
 						Neighbour.CameFrom = Current.Coord;
 						Neighbour.GScore = TentativeScore;
 
 						//GScore + Heuristic Function
 						Neighbour.FScore = Neighbour.GScore + (EndGrid.Position - NeighbourGrid.Position).SquaredLength();
 						Neighbour.TimeToReach = TimeToReach;
-						DataSet[NeighbourGrid.Position] = Neighbour;
+						DataSet.Add(NeighbourGrid.Position, Neighbour);
 						if (!bNeighbourPassed)
 						{
 							OpenSet.Add(Neighbour);
-							Heapify(OpenSet, OpenSet.Num()-1);
+							HeapModify(OpenSet, OpenSet.Num()-1);
 						}
 					}
 				}
+				else
+				{
+					DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Red, true, -1.f, 0);
+				}
 			}
 		}
-	}*/
+	}
+	
 	Status = EPathFindingStatus::Invalid;
 	return Status;
 }
@@ -218,10 +232,11 @@ void UAIPathFinder::StartMoving()
 void UAIPathFinder::MoveAIAlongPath()
 {
 	Status = EPathFindingStatus::InProgress;
-	for(int i = TotalPaths.Num() -1; i >= 0; i++)
+	for(int i = TotalPaths.Num() -1; i >= 0; i--)
 	{
 		DrawDebugPath();
-		const float Length = FVector::Dist(GetOwner()->GetActorLocation(),TotalPaths[i].Position);
+		GetOwner()->SetActorLocation(TotalPaths[i].Position);
+		/*const float Length = FVector::Dist(GetOwner()->GetActorLocation(),TotalPaths[i].Position);
 		float L = 0;
 		while (L < Length)
 		{
@@ -232,7 +247,7 @@ void UAIPathFinder::MoveAIAlongPath()
 			GetOwner()->SetActorLocation(TotalPaths[i].Position);
 			
 			L += GetWorld()->GetDeltaSeconds()*Speed;
-		}
+		}*/
 	}
 	Status = EPathFindingStatus::Finished;
 }

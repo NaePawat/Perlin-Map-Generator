@@ -103,7 +103,6 @@ FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, float Scale)
 	{
 		for(const FVector Neighbour : ClosestGrid.Neighbours)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Contains: %d %s"), AINavGrids.Contains(Neighbour / Scale), *Neighbour.ToString());
 			//if neighbour is registered in AINavGrid
 			if (AINavGrids.Contains(Neighbour / Scale))
 			{

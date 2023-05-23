@@ -31,7 +31,7 @@ public:
 	float CornerSmooth = 1.f;
 
 	UPROPERTY(EditAnywhere, Category="AI Stats")
-	float UpdateFreq = 0.01;
+	float UpdateFreq = 1.f;
 
 	FNavGrid StartGrid;
 	FNavGrid EndGrid;
@@ -54,8 +54,8 @@ protected:
 
 	FTimerHandle MoveTimer;
 
-	void Heapify(TArray<AIGridData> GridData, const int Index);
-	void HeapifyDeletion(TArray<AIGridData> GridData, const int Index);
+	static void HeapModify(TArray<AIGridData> GridData, const int Index);
+	static void HeapModifyDeletion(TArray<AIGridData> GridData, const int Index);
 	TArray<FNavGrid> ReconstructPath(AIGridData Start, AIGridData Current, TMap<FVector, AIGridData> DataSet);
 
 	void StartMoving();
