@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "HAL/ThreadSafeBool.h"
 #include "RealtimeMeshActor.h"
 #include "RealtimeMeshSimple.h"
 #include "MCChunk.generated.h"
@@ -76,20 +77,21 @@ public:
 class FAIAsyncTask : public FRunnable
 {
 public:
-	FAIAsyncTask(AAIManager* IAim, const FGridPointArray3D& IGpa3D, const FVector& IChunkLoc, const int ISize, const int IHeight, const float IScale) :
-	AIManager(IAim), GridPoints(IGpa3D), ChunkLoc(IChunkLoc), ChunkSize(ISize), ChunkHeight(IHeight), ChunkScale(IScale)
+	FAIAsyncTask(AAIManager* IAim, const FGridPointArray3D& IGpa3D, const FVector& IChunkLoc) :
+	AIManager(IAim), GridPoints(IGpa3D), ChunkLoc(IChunkLoc), bIsFinished(false)
 	{}
 
 	virtual bool Init() override { return true;}
 	virtual uint32 Run() override;
 	virtual void Stop() override;
+	bool IsFinished() const;
 private:
 	AAIManager* AIManager;
 	FGridPointArray3D GridPoints;
 	FVector ChunkLoc;
-	int ChunkSize;
-	int ChunkHeight;
-	float ChunkScale;
+
+	FCriticalSection SyncObject;
+	bool bIsFinished;
 };
 //#endregion
 
@@ -110,6 +112,12 @@ protected:
 	AAIManager* AIManager;
 	
 	FGridPointArray3D GridPoints;
+
+	//#region AI Threading
+	FAIAsyncTask* AIThread;
+	FRunnableThread* CurrentRunningThread;
+	int AINavUpdateNum;
+	//#endregion
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -59,14 +59,26 @@ int FCube::CalculateConfig()
 
 uint32 FAIAsyncTask::Run()
 {
+	bIsFinished = false;
+	FScopeLock Lock(&SyncObject);
+	
 	UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
 	AIManager->CreateAINavSystem(GridPoints, ChunkLoc);
+	UE_LOG(LogTemp, Warning, TEXT("Finished AI Nav System"));
+	bIsFinished = true;
+	SyncObject.Unlock();
+	
 	return 0;
 }
 
 void FAIAsyncTask::Stop()
 {
 	FRunnable::Stop();
+}
+
+bool FAIAsyncTask::IsFinished() const
+{
+	return bIsFinished;
 }
 
 //#endregion
@@ -97,6 +109,23 @@ void AMCChunk::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//TODO: change to LOD of the mesh
+
+	//Thread UpdateManagement
+	if(AINavUpdateNum > 0)
+	{
+		if(AIThread == nullptr)
+		{
+			AIThread = new FAIAsyncTask(AIManager, GridPoints,  GetActorLocation());
+			CurrentRunningThread = FRunnableThread::Create(AIThread, TEXT("AI Path Task"));
+		}
+		else if (AIThread->IsFinished())
+		{
+			AINavUpdateNum--;
+			AIThread = nullptr;
+			delete CurrentRunningThread;
+			CurrentRunningThread = nullptr;
+		}
+	}
 }
 
 FVector AMCChunk::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const
@@ -162,8 +191,8 @@ void AMCChunk::UpdateProcMesh()
 	Mesh->RemoveSection(MeshSection);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 
-	FRunnableThread::Create(new FAIAsyncTask(AIManager, GridPoints, GetActorLocation(), ChunkSize, ChunkHeight, Scale), TEXT("AI Path Task"));
-	//AIManager->DebugAINavGrid();
+	//AI Nav need to be updated
+	AINavUpdateNum++;
 	CleanUpData();
 }
 
