@@ -89,7 +89,7 @@ FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 	{
 		FNavGrid ClosestGrid = AINavGrids[DesiredPos];
 		//if invalid, find the closest valid one
-		ClosestGrid = GetClosestValidNavGrid(ClosestGrid);
+		ClosestGrid = GetClosestValidNavGrid(ClosestGrid, DesiredPos);
 		return ClosestGrid;
 	}
 
@@ -97,19 +97,19 @@ FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 }
 
 //Recursive check for the available Valid grids
-FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid)
+FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos)
 {
 	if (ClosestGrid.Invalid)
 	{
 		for(const FVector Neighbour : ClosestGrid.Neighbours)
 		{
 			//if neighbour is registered in AINavGrid
-			if (AINavGrids.Contains(Neighbour / MapChunk->Scale))
+			if (AINavGrids.Contains(Neighbour))
 			{
-				FNavGrid NeighbourGrid = AINavGrids[Neighbour / MapChunk->Scale];
-				if (!NeighbourGrid.Invalid) return AINavGrids[Neighbour / MapChunk->Scale];
-				
-				ClosestGrid = GetClosestValidNavGrid(AINavGrids[Neighbour / MapChunk->Scale]);
+				FNavGrid NeighbourGrid = AINavGrids[Neighbour];
+				DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 5.f, NeighbourGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+				if (!NeighbourGrid.Invalid && FVector::DistSquared(NeighbourGrid.Position, DesiredPos) <= MaxClosestTolerance) return AINavGrids[Neighbour];
+				return ClosestGrid = GetClosestValidNavGrid(AINavGrids[Neighbour], DesiredPos);
 			}
 		}
 	}

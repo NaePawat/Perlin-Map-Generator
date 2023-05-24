@@ -123,8 +123,8 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	StartGrid = AIManager->GetClosestNavGridInfo(CurrentLoc);
 	EndGrid = AIManager->GetClosestNavGridInfo(Goal);
 	//UE_LOG(LogTemp, Warning, TEXT("StartLoc: %s %d EndLoc %s %d"), *StartGrid.Position.ToString(), StartGrid.Invalid, *EndGrid.Position.ToString(), EndGrid.Invalid);
-	DrawDebugPoint(GetWorld(), StartGrid.Position, 10.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
-	DrawDebugPoint(GetWorld(), EndGrid.Position, 10.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+	DrawDebugPoint(GetWorld(), StartGrid.Position, 20.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+	DrawDebugPoint(GetWorld(), EndGrid.Position, 20.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
 
 	if(StartGrid.Position == EndGrid.Position || StartGrid.Invalid || EndGrid.Invalid)
 	{
@@ -148,7 +148,7 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	{
 		AIGridData Current = OpenSet[0];
 		//UE_LOG(LogTemp,Warning, TEXT("Current: %s, CameFrom: %s"), *Current.Coord.ToString(), *Current.CameFrom.ToString());
-		DrawDebugPoint(GetWorld(), Current.Coord, 4.f, FColor::Green, true, -1.f, 0);
+		//DrawDebugPoint(GetWorld(), Current.Coord, 4.f, FColor::Green, true, -1.f, 0);
 		if(Current.Coord == EndGrid.Position)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Calculated until the target"));
@@ -195,7 +195,7 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 				{
 					if (const float TentativeScore = Current.GScore + 100; TentativeScore < Neighbour.GScore)
 					{
-						DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Cyan, true, -1.f, 0);
+						//DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Cyan, true, -1.f, 0);
 						Neighbour.CameFrom = Current.Coord;
 						Neighbour.GScore = TentativeScore;
 
@@ -212,7 +212,7 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 				}
 				else
 				{
-					DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Red, true, -1.f, 0);
+					//DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 4.f, FColor::Red, true, -1.f, 0);
 				}
 			}
 		}

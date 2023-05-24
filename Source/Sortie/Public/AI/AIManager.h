@@ -94,13 +94,16 @@ public:
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="3D AI Nav")
 	float NavGridCastDistance = 100.f;
 
+	UPROPERTY(EditAnywhere, meta=(ClampMin = 0), Category="3D AI Nav")
+	float MaxClosestTolerance;
+
 	UPROPERTY()
 	AMCChunk* MapChunk;
 
 	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc);
 	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, const FVector& ChunkLoc) const;
 	FNavGrid GetClosestNavGridInfo(const FVector& DesignatedLoc);
-	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid);
+	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos);
 
 	TArray<FNavGrid> GetValidGrids();
 	void DebugLogNavGrid() const;
