@@ -22,41 +22,21 @@ void ASortieAI::BeginPlay()
 	Agent = FindComponentByClass<UAIPathFinder>();
 	if(Agent)
 	{
-		PointA = GetActorLocation();
-
-		if (const ASortieCharacterBase* Player = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass())))
+		if (ASortieCharacterBase* Player = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass())))
 		{
-			PointA = GetActorLocation();
-			PointB = Player->GetActorLocation();
-			//GetWorld()->GetTimerManager().SetTimer(MoveTimerHandle, this, &ASortieAI::MoveFromAToB, Interval, true, Interval);
-			MoveFromAToB();
+			Target = Player;
+			GetWorld()->GetTimerManager().SetTimer(MoveTimerHandle, this, &ASortieAI::MoveFromAToB, Interval, true, Interval);
 		}
 	}
 }
 
 void ASortieAI::MoveFromAToB()
 {
-	/*while (true)
+	if(PrevTargetLoc != Target->GetActorLocation())
 	{
-		Agent->PathFinding(PointB);
-		while (Agent->Status == EPathFindingStatus::Invalid)
-		{
-			const FVector POM = PointA;
-			PointA = PointB;
-			PointB = POM;
-			Agent->PathFinding(PointB);
-		}
-		while (Agent->Status != EPathFindingStatus::Finished)
-		{
-			return;
-		}
-		const FVector POM = PointA;
-		PointA = PointB;
-		PointB = POM;
-		return;
-	}*/
-	Agent->PathFinding(PointB);
-	UE_LOG(LogTemp, Warning, TEXT("Status: %d"), Agent->Status);
+		PrevTargetLoc = Target->GetActorLocation();
+		Agent->PathFinding(PrevTargetLoc);
+	}
 }
 
 // Called every frame

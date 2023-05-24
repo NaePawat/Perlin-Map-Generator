@@ -34,15 +34,20 @@ public:
 	float CornerSmooth = 1.f;
 
 	UPROPERTY(EditAnywhere, Category="AI Stats")
-	float UpdateFreq = 1.f;
+	float MaxTargetGridOffset = 25.f;
 
 	FNavGrid StartGrid;
 	FNavGrid EndGrid;
 	FVector StartLoc;
 	FVector EndLoc;
 
+	//#region path moving
 	TArray<FNavGrid> TotalPaths;
 	TArray<FNavGrid> CornerPoints;
+
+	int TargetGridIndex;
+	FVector CurrentTargetGrid;
+	//#endregion
 
 	EPathFindingStatus Status = EPathFindingStatus::Finished;
 
@@ -61,8 +66,8 @@ protected:
 	static void HeapModifyDeletion(TArray<AIGridData> GridData, const int Index);
 	TArray<FNavGrid> ReconstructPath(AIGridData Start, AIGridData Current, TMap<FVector, AIGridData> DataSet);
 
-	void StartMoving();
-	void MoveAIAlongPath();
+	void MoveAIAlongPath(float DeltaTime);
+	void CleanPathFindingData();
 	void DrawDebugPath();
 
 public:	

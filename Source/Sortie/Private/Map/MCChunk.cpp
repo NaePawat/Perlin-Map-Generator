@@ -120,6 +120,7 @@ void AMCChunk::Tick(float DeltaTime)
 		}
 		else if (AIThread->IsFinished())
 		{
+			//AIManager->DebugAINavGrid();
 			AINavUpdateNum--;
 			AIThread = nullptr;
 			delete CurrentRunningThread;

@@ -8,6 +8,7 @@
 
 //forward declaration
 class UAIPathFinder;
+class ASortieCharacterBase;
 
 UCLASS()
 class SORTIE_API ASortieAI : public APawn
@@ -21,21 +22,20 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	//Point A
-	FVector PointA;
 	
-	//Point B
+	//Target to move to
 	UPROPERTY(EditAnywhere, Category="PathFinding")
-	FVector PointB;
+	ASortieCharacterBase* Target;
 	
 	UPROPERTY(EditAnywhere, Category="PathFinding")
-	float Interval = 0.01;
+	float Interval = 0.1;
 
 	UPROPERTY()
 	UAIPathFinder* Agent;
 	
 	FTimerHandle MoveTimerHandle;
+
+	FVector PrevTargetLoc;
 
 	void MoveFromAToB();
 
