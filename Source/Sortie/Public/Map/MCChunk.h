@@ -73,27 +73,8 @@ public:
 	int Config = 0;
 	int CalculateConfig();
 };
-
-class FAIAsyncTask : public FRunnable
-{
-public:
-	FAIAsyncTask(AAIManager* IAim, const FGridPointArray3D& IGpa3D, const FVector& IChunkLoc) :
-	AIManager(IAim), GridPoints(IGpa3D), ChunkLoc(IChunkLoc), bIsFinished(false)
-	{}
-
-	virtual bool Init() override { return true;}
-	virtual uint32 Run() override;
-	virtual void Stop() override;
-	bool IsFinished() const;
-private:
-	AAIManager* AIManager;
-	FGridPointArray3D GridPoints;
-	FVector ChunkLoc;
-
-	FCriticalSection SyncObject;
-	bool bIsFinished;
-};
 //#endregion
+
 
 UCLASS()
 class SORTIE_API AMCChunk : public ARealtimeMeshActor
@@ -110,14 +91,6 @@ protected:
 	
 	UPROPERTY()
 	AAIManager* AIManager;
-	
-	FGridPointArray3D GridPoints;
-
-	//#region AI Threading
-	FAIAsyncTask* AIThread;
-	FRunnableThread* CurrentRunningThread;
-	int AINavUpdateNum;
-	//#endregion
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -147,7 +120,6 @@ public:
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0), Category="Marching Cubes")
 	int ChunkSize = 1; //on first load chunk's size
-
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="Marching Cubes")
 	int ChunkHeight = 1; //on first load chunk's height
 
@@ -160,6 +132,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Marching Cubes")
 	UMaterialInterface* Material;
 
+	FGridPointArray3D GridPoints;
 	FVector ChunkCoord;
 
 	void CreateProceduralMarchingCubesChunk();
@@ -170,6 +143,8 @@ public:
 
 	//#region Helpers
 	TArray<AMCChunk*> GetNeighborChunks() const;
+
+	FTimerHandle ChunkTimerHandle;
 	//#endregion
 
 	// Called every frame
@@ -195,5 +170,6 @@ private:
 	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc);
 	void CreateProcMesh();
 	void UpdateProcMesh();
+	void UpdateAINavigation();
 	void CleanUpData();
 };

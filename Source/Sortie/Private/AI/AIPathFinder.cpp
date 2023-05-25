@@ -122,8 +122,8 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	StartGrid = AIManager->GetClosestNavGridInfo(CurrentLoc);
 	EndGrid = AIManager->GetClosestNavGridInfo(Goal);
 	//UE_LOG(LogTemp, Warning, TEXT("StartLoc: %s %d EndLoc %s %d"), *StartGrid.Position.ToString(), StartGrid.Invalid, *EndGrid.Position.ToString(), EndGrid.Invalid);
-	DrawDebugPoint(GetWorld(), StartGrid.Position, 20.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
-	DrawDebugPoint(GetWorld(), EndGrid.Position, 20.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+	//DrawDebugPoint(GetWorld(), StartGrid.Position, 20.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
+	//DrawDebugPoint(GetWorld(), EndGrid.Position, 20.f, EndGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
 
 	if(StartGrid.Position == EndGrid.Position || StartGrid.Invalid || EndGrid.Invalid)
 	{

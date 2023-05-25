@@ -56,38 +56,13 @@ int FCube::CalculateConfig()
 	
 	return Config;
 }
-
-uint32 FAIAsyncTask::Run()
-{
-	bIsFinished = false;
-	FScopeLock Lock(&SyncObject);
-	
-	UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
-	AIManager->CreateAINavSystem(GridPoints, ChunkLoc);
-	UE_LOG(LogTemp, Warning, TEXT("Finished AI Nav System"));
-	bIsFinished = true;
-	SyncObject.Unlock();
-	
-	return 0;
-}
-
-void FAIAsyncTask::Stop()
-{
-	FRunnable::Stop();
-}
-
-bool FAIAsyncTask::IsFinished() const
-{
-	return bIsFinished;
-}
-
 //#endregion
 
 // Sets default values
 AMCChunk::AMCChunk()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	RealtimeMesh = CreateDefaultSubobject<URealtimeMeshComponent>("RealtimeMesh");
 	SetRootComponent(RealtimeMesh);
@@ -101,6 +76,7 @@ void AMCChunk::BeginPlay()
 	AIManager = Cast<AAIManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAIManager::StaticClass()));
 
 	CreateProceduralMarchingCubesChunk();
+	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &AMCChunk::UpdateAINavigation, 1.f, false, 1.f);
 }
 
 // Called every frame
@@ -109,24 +85,6 @@ void AMCChunk::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//TODO: change to LOD of the mesh
-
-	//Thread UpdateManagement
-	if(AINavUpdateNum > 0)
-	{
-		if(AIThread == nullptr)
-		{
-			AIThread = new FAIAsyncTask(AIManager, GridPoints,  GetActorLocation());
-			CurrentRunningThread = FRunnableThread::Create(AIThread, TEXT("AI Path Task"));
-		}
-		else if (AIThread->IsFinished())
-		{
-			//AIManager->DebugAINavGrid();
-			AINavUpdateNum--;
-			AIThread = nullptr;
-			delete CurrentRunningThread;
-			CurrentRunningThread = nullptr;
-		}
-	}
 }
 
 FVector AMCChunk::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const
@@ -193,8 +151,13 @@ void AMCChunk::UpdateProcMesh()
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
 
 	//AI Nav need to be updated
-	AINavUpdateNum++;
+	UpdateAINavigation();
 	CleanUpData();
+}
+
+void AMCChunk::UpdateAINavigation()
+{
+	AIManager->AddToChunkUpdateQueue(this);
 }
 
 void AMCChunk::CleanUpData()

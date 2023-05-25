@@ -2,11 +2,35 @@
 
 #include "AI/AIManager.h"
 
+uint32 FAIAsyncTask::Run()
+{
+	bIsFinished = false;
+	FScopeLock Lock(&SyncObject);
+	
+	UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
+	AIManager->CreateAINavSystem(GridPoints, ChunkLoc);
+	UE_LOG(LogTemp, Warning, TEXT("Finished AI Nav System"));
+	bIsFinished = true;
+	SyncObject.Unlock();
+	
+	return 0;
+}
+
+void FAIAsyncTask::Stop()
+{
+	FRunnable::Stop();
+}
+
+bool FAIAsyncTask::IsFinished() const
+{
+	return bIsFinished;
+}
+
 // Sets default values
 AAIManager::AAIManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
@@ -20,6 +44,30 @@ void AAIManager::BeginPlay()
 void AAIManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//Thread update management
+	if(!ChunkToUpdate.IsEmpty())
+	{
+		if(AIThread == nullptr)
+		{
+			AMCChunk* CurrentChunk;
+			ChunkToUpdate.Dequeue(CurrentChunk);
+			AIThread = new FAIAsyncTask(this, CurrentChunk->GridPoints,  CurrentChunk->GetActorLocation());
+			CurrentRunningThread = FRunnableThread::Create(AIThread, TEXT("AI Path Task"));
+		}
+		else if (AIThread->IsFinished())
+		{
+			//DebugAINavGrid();
+			AIThread = nullptr;
+			delete CurrentRunningThread;
+			CurrentRunningThread = nullptr;
+		}
+	}
+}
+
+void AAIManager::AddToChunkUpdateQueue(AMCChunk* Chunk)
+{
+	ChunkToUpdate.Enqueue(Chunk);
 }
 
 //TODO: Frequent MeshUpdate can cause the AI generation to access the null memory (it's a call in another thread after all)
@@ -80,11 +128,7 @@ FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 	{
 		FNavGrid ClosestGrid = AINavGrids[DesiredPos];
 		//if invalid, find the closest valid one
-		if (ClosestGrid.Invalid)
-		{
-			ClosestGrid = GetClosestValidNavGrid(ClosestGrid, DesiredPos, INT_MAX);
-			//ClosestGrid = GetClosestValidNavGridBFS(ClosestGrid);
-		}
+		if (ClosestGrid.Invalid) ClosestGrid = GetClosestValidNavGrid(ClosestGrid, DesiredPos, INT_MAX);
 		return ClosestGrid;
 	}
 

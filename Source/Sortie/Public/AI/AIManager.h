@@ -32,6 +32,26 @@ struct FNavGridArray3D
 //#endregion
 
 //#region Helper Class
+class FAIAsyncTask : public FRunnable
+{
+public:
+	FAIAsyncTask(AAIManager* IAim, const FGridPointArray3D& IGpa3D, const FVector& IChunkLoc) :
+	AIManager(IAim), GridPoints(IGpa3D), ChunkLoc(IChunkLoc), bIsFinished(false)
+	{}
+
+	virtual bool Init() override { return true;}
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	bool IsFinished() const;
+private:
+	AAIManager* AIManager;
+	FGridPointArray3D GridPoints;
+	FVector ChunkLoc;
+
+	FCriticalSection SyncObject;
+	bool bIsFinished;
+};
+
 class AIGridData
 {
 public:
@@ -87,6 +107,11 @@ public:
 
 	//[CoordinateIndex, GridInfo]
 	TMap<FVector, FNavGrid> AINavGrids;
+	
+	//#region AI Threading
+	FAIAsyncTask* AIThread;
+	FRunnableThread* CurrentRunningThread;
+	//#endregion
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="3D AI Nav")
 	int AIGridScaleToGridPoints = 1;
@@ -100,6 +125,7 @@ public:
 	UPROPERTY()
 	AMCChunk* MapChunk;
 
+	void AddToChunkUpdateQueue(AMCChunk* Chunk);
 	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc);
 	FNavGrid GetClosestNavGridInfo(const FVector& DesignatedLoc);
 	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos, int MinDistance);
@@ -113,14 +139,17 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, Category="3D AI Nav")
+	TSubclassOf<AMCChunk> ChunkClass;
+	
+	TQueue<AMCChunk*> ChunkToUpdate;
+
+	UPROPERTY(EditAnywhere, Category="3D AI Nav")
 	TArray<AActor*> BlackListActors;
 
 	bool CheckNavNodeInvalidRayCast(const FVector& CenterGrid) const;
 	bool CheckNavNodeInvalidNeighbour(const FGridPointArray3D& GridPoints, const int X, const int Y, const int Z) const;
 	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
 
-	UPROPERTY(EditAnywhere, Category="3D AI Nav")
-	TSubclassOf<AMCChunk> ChunkClass;
 
 public:	
 	// Called every frame
