@@ -101,9 +101,8 @@ public:
 	AMCChunk* MapChunk;
 
 	void CreateAINavSystem(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc);
-	FGridPoint GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, const FVector& ChunkLoc) const;
 	FNavGrid GetClosestNavGridInfo(const FVector& DesignatedLoc);
-	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos);
+	FNavGrid GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos, int MinDistance);
 
 	TArray<FNavGrid> GetValidGrids();
 	void DebugLogNavGrid() const;
@@ -116,7 +115,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category="3D AI Nav")
 	TArray<AActor*> BlackListActors;
 
-	bool CheckNavNodeInvalid(const FVector& CenterGrid) const;
+	bool CheckNavNodeInvalidRayCast(const FVector& CenterGrid) const;
+	bool CheckNavNodeInvalidNeighbour(const FGridPointArray3D& GridPoints, const int X, const int Y, const int Z) const;
 	TArray<FVector> GetNeighbourGrids(const FVector& DesignatedLoc, float ChunkScale) const;
 
 	UPROPERTY(EditAnywhere, Category="3D AI Nav")

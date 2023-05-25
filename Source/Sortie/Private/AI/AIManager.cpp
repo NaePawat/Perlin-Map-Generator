@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "AI/AIManager.h"
 
 // Sets default values
@@ -39,21 +38,22 @@ void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FV
 				//Current AI Grid Loc
 				const FVector CurrentPosition = FVector(x*MapChunk->Scale/AIGridScaleToGridPoints + ChunkLoc.X, y*MapChunk->Scale/AIGridScaleToGridPoints + ChunkLoc.Y, z*MapChunk->Scale/AIGridScaleToGridPoints+ChunkLoc.Z);
 
+				//Nearest GridPoint to AiNavGrid
+				const int ClosestGridX = FMath::CeilToInt(FMath::Abs(CurrentPosition.X - ChunkLoc.X)/MapChunk->Scale);
+				const int ClosestGridY = FMath::CeilToInt(FMath::Abs(CurrentPosition.Y - ChunkLoc.Y)/MapChunk->Scale);
+				const int ClosestGridZ = FMath::FloorToInt(FMath::Abs(CurrentPosition.Z - ChunkLoc.Z)/MapChunk->Scale);
+				
 				//Check the nearest Actor to determine whether there's a surface or not
-				const auto [Position, Value, On] = GetClosestGridInfo(GridPoints, CurrentPosition, ChunkLoc);
-
+				const auto [Position, Value, On] = GridPoints.Grids[ClosestGridX].Grids[ClosestGridY].Grids[ClosestGridZ];
+				
 				//Check other neighbour of the grid, are there any obstacle?
-				const bool Invalid = On ? true : CheckNavNodeInvalid(Position);
+				const bool Invalid = On ? true : CheckNavNodeInvalidNeighbour(GridPoints, ClosestGridX, ClosestGridY, ClosestGridZ);
 
 				//Add the neighbours
 				//Just FVector position is enough and we'll look up in the TMap later
 				const TArray<FVector> NeighbourArray = GetNeighbourGrids(CurrentPosition, MapChunk->Scale);
 				
-				FNavGrid NewGrid = {
-					CurrentPosition,
-					Invalid,
-					NeighbourArray
-				};
+				FNavGrid NewGrid = { CurrentPosition, Invalid,NeighbourArray };
 				
 				if(AINavGrids.Num() > 0 && AINavGrids.Contains(FVector(x+OffsetX, y+OffsetY, z+OffsetZ)))
 				{
@@ -68,15 +68,6 @@ void AAIManager::CreateAINavSystem(const FGridPointArray3D& GridPoints, const FV
 	}
 }
 
-FGridPoint AAIManager::GetClosestGridInfo(const FGridPointArray3D& GridPoints, const FVector& DesignatedLoc, const FVector& ChunkLoc) const
-{
-	//TODO: DesignatedLoc is not in the chunk loc (every GridPoints chunk start at (0,0,0))
-	return GridPoints.
-		Grids[FMath::CeilToInt(FMath::Abs(DesignatedLoc.X - ChunkLoc.X)/MapChunk->Scale)].
-		Grids[FMath::CeilToInt(FMath::Abs(DesignatedLoc.Y - ChunkLoc.Y)/MapChunk->Scale)].
-		Grids[FMath::FloorToInt(FMath::Abs(DesignatedLoc.Z - ChunkLoc.Z)/MapChunk->Scale)];
-}
-
 FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 {
 	//Convert the Designated Loc to the nearest Grid first
@@ -89,7 +80,11 @@ FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 	{
 		FNavGrid ClosestGrid = AINavGrids[DesiredPos];
 		//if invalid, find the closest valid one
-		ClosestGrid = GetClosestValidNavGrid(ClosestGrid, DesiredPos);
+		if (ClosestGrid.Invalid)
+		{
+			ClosestGrid = GetClosestValidNavGrid(ClosestGrid, DesiredPos, INT_MAX);
+			//ClosestGrid = GetClosestValidNavGridBFS(ClosestGrid);
+		}
 		return ClosestGrid;
 	}
 
@@ -97,19 +92,22 @@ FNavGrid AAIManager::GetClosestNavGridInfo(const FVector& DesignatedLoc)
 }
 
 //Recursive check for the available Valid grids
-FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos)
+FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector& DesiredPos, int MinDistance)
 {
-	if (ClosestGrid.Invalid)
+	if(!ClosestGrid.Invalid) return ClosestGrid;
+
+	for(const FVector Neighbour : ClosestGrid.Neighbours)
 	{
-		for(const FVector Neighbour : ClosestGrid.Neighbours)
+		//if neighbour is registered in AINavGrid
+		if (AINavGrids.Contains(Neighbour))
 		{
-			//if neighbour is registered in AINavGrid
-			if (AINavGrids.Contains(Neighbour))
+			FNavGrid Result = GetClosestValidNavGrid(AINavGrids[Neighbour], DesiredPos, MinDistance);
+			const int Distance = FVector::DistSquared(Result.Position, DesiredPos);
+			if (Distance < MinDistance)
 			{
-				FNavGrid NeighbourGrid = AINavGrids[Neighbour];
-				DrawDebugPoint(GetWorld(), NeighbourGrid.Position, 5.f, NeighbourGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
-				if (!NeighbourGrid.Invalid && FVector::DistSquared(NeighbourGrid.Position, DesiredPos) <= MaxClosestTolerance) return AINavGrids[Neighbour];
-				return ClosestGrid = GetClosestValidNavGrid(AINavGrids[Neighbour], DesiredPos);
+				MinDistance = Distance;
+				ClosestGrid = Result;
+				if (Distance >= MaxClosestTolerance) return ClosestGrid;
 			}
 		}
 	}
@@ -117,11 +115,13 @@ FNavGrid AAIManager::GetClosestValidNavGrid(FNavGrid& ClosestGrid, const FVector
 	return ClosestGrid;
 }
 
-bool AAIManager::CheckNavNodeInvalid(const FVector& CenterGrid) const
+bool AAIManager::CheckNavNodeInvalidRayCast(const FVector& CenterGrid) const
 {
-	//To check if there are any obstacles, we're gonna do a little raycast to each direction (hopefully this doesn't take to much power lol)
+	//To check if there are any obstacles, we're gonna do a little raycast to each direction
 	//This is not only for the terrain that we're gonna check, but also all the objects that can block the navigation path
-	//Hard code for optimization
+	//Hard code for optimization.
+
+	//RayTracing method (accurate terrain representation, but very slow to process (total O(n^6)))
 	FHitResult HitResult;
 	
 	FVector TraceStart = CenterGrid;
@@ -144,6 +144,28 @@ bool AAIManager::CheckNavNodeInvalid(const FVector& CenterGrid) const
 		}
 	}
 
+	return true;
+}
+
+bool AAIManager::CheckNavNodeInvalidNeighbour(const FGridPointArray3D& GridPoints, const int X, const int Y, const int Z) const
+{
+	//Check neighbour method, much faster but not include the other actor than proc mesh
+	for(int x = -1; x<=1 ; ++x)
+	{
+		for(int y = -1; y<=1 ; ++y)
+		{
+			for(int z = -1; z<=1 ; ++z)
+			{
+				if (x == 0 && y == 0 && z == 0) continue;
+				if (X+x < MapChunk->ChunkSize && Y+y < MapChunk->ChunkSize && Z+z < MapChunk->ChunkHeight && X+x >= 0 && Y+y >= 0 && Z+z >= 0)
+				{
+					const FGridPoint CurrentGrid = GridPoints.Grids[X + x].Grids[Y + y].Grids[Z + z];
+					//Nearby Neighbour is On, we assume that the point is available for Nav
+					if (CurrentGrid.On) return false;
+				}
+			}
+		}
+	}
 	return true;
 }
 

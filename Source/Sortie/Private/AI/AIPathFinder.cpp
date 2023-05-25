@@ -10,7 +10,7 @@ UAIPathFinder::UAIPathFinder()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-	// ...
+	// ....
 }
 
 
@@ -27,11 +27,7 @@ void UAIPathFinder::BeginPlay()
 void UAIPathFinder::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if(TotalPaths.Num() > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("TotalPathNum: %d"), TotalPaths.Num());
-		MoveAIAlongPath(DeltaTime);
-	}
+	if(TotalPaths.Num() > 0) MoveAIAlongPath(DeltaTime);
 	// ...
 }
 
@@ -91,8 +87,6 @@ TArray<FNavGrid> UAIPathFinder::ReconstructPath(AIGridData Start, AIGridData Cur
 	Direction.Normalize();
 
 	CornerPoints.Add(CurrentGrid);
-
-	//UE_LOG(LogTemp, Warning, TEXT("ReconstructPath CurrentGrid: %s"), *Current.Coord.ToString());
 	
 	//int Count = 0;
 	while (CameFromGrid.Position != Start.Coord)
