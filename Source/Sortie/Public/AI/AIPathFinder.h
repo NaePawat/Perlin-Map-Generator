@@ -9,6 +9,7 @@
 
 //forward declaration
 class AMCChunk;
+class ASortieAI;
 
 enum class EPathFindingStatus
 {
@@ -28,13 +29,7 @@ public:
 	UAIPathFinder();
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.f), Category="AI Stats")
-	float Speed = 1.f;
-
-	UPROPERTY(EditAnywhere, meta=(ClampMin = 0.f), Category="AI Stats")
 	float CornerSmooth = 1.f;
-
-	UPROPERTY(EditAnywhere, Category="AI Stats")
-	float MaxTargetGridOffset = 25.f;
 
 	FNavGrid StartGrid;
 	FNavGrid EndGrid;
@@ -42,16 +37,12 @@ public:
 	FVector EndLoc;
 
 	//#region path moving
-	TArray<FNavGrid> TotalPaths;
 	TArray<FNavGrid> CornerPoints;
-
-	int TargetGridIndex;
-	FVector CurrentTargetGrid;
 	//#endregion
 
 	EPathFindingStatus Status = EPathFindingStatus::Finished;
 
-	EPathFindingStatus PathFinding(const FVector& Goal, bool SuppressMovement = false);
+	EPathFindingStatus PathFinding(const FVector& Start, const FVector& Goal, bool SuppressMovement = false);
 
 protected:
 	// Called when the game starts
@@ -60,13 +51,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Pathfinding")
 	AAIManager* AIManager;
 
+	UPROPERTY()
+	ASortieAI* SortieAI;
+
 	FTimerHandle MoveTimer;
 
 	static void HeapModify(TArray<AIGridData> GridData, const int Index);
 	static void HeapModifyDeletion(TArray<AIGridData> GridData, const int Index);
 	TArray<FNavGrid> ReconstructPath(AIGridData Start, AIGridData Current, TMap<FVector, AIGridData> DataSet);
 
-	void MoveAIAlongPath(float DeltaTime);
 	void CleanPathFindingData();
 	void DrawDebugPath();
 

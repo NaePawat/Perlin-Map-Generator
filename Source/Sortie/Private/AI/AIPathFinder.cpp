@@ -2,6 +2,7 @@
 
 
 #include "AI/AIPathFinder.h"
+#include "AI/SortieAI.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
@@ -9,7 +10,7 @@ UAIPathFinder::UAIPathFinder()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	// ....
 }
 
@@ -17,8 +18,9 @@ UAIPathFinder::UAIPathFinder()
 // Called when the game starts
 void UAIPathFinder::BeginPlay()
 {
-	Super::BeginPlay();
+	Super::BeginPlay(); 
 	AIManager = Cast<AAIManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAIManager::StaticClass()));
+	SortieAI = Cast<ASortieAI>(GetOwner());
 	// ...
 	
 }
@@ -27,7 +29,6 @@ void UAIPathFinder::BeginPlay()
 void UAIPathFinder::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if(TotalPaths.Num() > 0) MoveAIAlongPath(DeltaTime);
 	// ...
 }
 
@@ -112,14 +113,13 @@ TArray<FNavGrid> UAIPathFinder::ReconstructPath(AIGridData Start, AIGridData Cur
 	return TotPaths;
 }
 
-EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool SuppressMovement)
+EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Start, const FVector& Goal, bool SuppressMovement)
 {
 	CleanPathFindingData();
 	
-	const FVector CurrentLoc = GetOwner()->GetActorLocation();
-	StartLoc = CurrentLoc;
+	StartLoc = Start;
 	EndLoc = Goal;
-	StartGrid = AIManager->GetClosestNavGridInfo(CurrentLoc);
+	StartGrid = AIManager->GetClosestNavGridInfo(Start);
 	EndGrid = AIManager->GetClosestNavGridInfo(Goal);
 	//UE_LOG(LogTemp, Warning, TEXT("StartLoc: %s %d EndLoc %s %d"), *StartGrid.Position.ToString(), StartGrid.Invalid, *EndGrid.Position.ToString(), EndGrid.Invalid);
 	//DrawDebugPoint(GetWorld(), StartGrid.Position, 20.f, StartGrid.Invalid ? FColor::Red : FColor::Green, true, 1.f, 0);
@@ -151,11 +151,11 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 		if(Current.Coord == EndGrid.Position)
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("Calculated until the target"));
-			TotalPaths = ReconstructPath(StartingGrid, Current, DataSet);
+			SortieAI->TotalPaths = ReconstructPath(StartingGrid, Current, DataSet);
 			//UE_LOG(LogTemp,Warning, TEXT("TotalPaths: %d"), TotalPaths.Num());
 			if(!SuppressMovement)
 			{
-				TargetGridIndex = TotalPaths.Num() - (TotalPaths.Num() > 1 ? 2 : 1);
+				SortieAI->TargetGridIndex = SortieAI->TotalPaths.Num() - (SortieAI->TotalPaths.Num() > 1 ? 2 : 1);
 				Status = EPathFindingStatus::InProgress;
 				DrawDebugPath();
 			}
@@ -191,7 +191,7 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 					}
 
 					float Distance = FVector::Dist(CurrentGrid.Position, NeighbourGrid.Position);
-					float TimeToReach = Current.TimeToReach + Distance / Speed;
+					float TimeToReach = Current.TimeToReach + Distance / SortieAI->Speed;
 
 					if (!NeighbourGrid.Invalid)
 					{
@@ -225,40 +225,19 @@ EPathFindingStatus UAIPathFinder::PathFinding(const FVector& Goal, bool Suppress
 	return Status;
 }
 
-void UAIPathFinder::MoveAIAlongPath(float DeltaTime)
-{
-	const FVector CurrentLoc  = GetOwner()->GetActorLocation();
-	const FVector NewLoc = FMath::VInterpConstantTo(CurrentLoc, CurrentTargetGrid, DeltaTime, Speed);
-
-	GetOwner()->SetActorLocation(NewLoc);
-
-	if(FVector::DistSquared(CurrentLoc, CurrentTargetGrid) < MaxTargetGridOffset)
-	{
-		TargetGridIndex--;
-		if(TargetGridIndex <= 0)
-		{
-			TargetGridIndex = 0;
-			Status = EPathFindingStatus::Finished;
-		}
-	}
-
-	Status = EPathFindingStatus::InProgress;
-	CurrentTargetGrid = TotalPaths[TargetGridIndex].Position;
-}
-
 void UAIPathFinder::CleanPathFindingData()
 {
-	TotalPaths.Empty();
+	SortieAI->TotalPaths.Empty();
 	CornerPoints.Empty();
 }
 
 void UAIPathFinder::DrawDebugPath()
 {
-	if(TotalPaths.Num() > 0)
+	if(SortieAI->TotalPaths.Num() > 0)
 	{
-		for(int i = TotalPaths.Num() - 2; i >= 0; i--)
+		for(int i = SortieAI->TotalPaths.Num() - 2; i >= 0; i--)
 		{
-			DrawDebugLine(GetWorld(), TotalPaths[i+1].Position, TotalPaths[i].Position, FColor::Magenta, false, 10.f, 0.f);
+			DrawDebugLine(GetWorld(), SortieAI->TotalPaths[i+1].Position, SortieAI->TotalPaths[i].Position, FColor::Magenta, false, 10.f, 0.f);
 		}
 	}
 }

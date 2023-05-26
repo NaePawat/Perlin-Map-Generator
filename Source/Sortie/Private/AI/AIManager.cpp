@@ -2,15 +2,28 @@
 
 #include "AI/AIManager.h"
 
+bool FAIAsyncTask::Init()
+{
+	StopTaskCounter.Reset();
+	bIsThreadRunning = true;
+	return true;
+}
+
 uint32 FAIAsyncTask::Run()
 {
-	bIsFinished = false;
 	FScopeLock Lock(&SyncObject);
-	
-	UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
-	AIManager->CreateAINavSystem(GridPoints, ChunkLoc);
-	UE_LOG(LogTemp, Warning, TEXT("Finished AI Nav System"));
-	bIsFinished = true;
+
+	while (!StopTaskCounter.GetValue() && bIsThreadRunning)
+	{
+		if(!BuildingQueue.IsEmpty())
+		{
+			FNavBuilding Data;
+			BuildingQueue.Dequeue(Data);
+			UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
+			AIManager->CreateAINavSystem(Data.GridPoints, Data.ChunkLoc);
+			UE_LOG(LogTemp, Warning, TEXT("Finished AI Nav System"));
+		}
+	}
 	SyncObject.Unlock();
 	
 	return 0;
@@ -18,19 +31,20 @@ uint32 FAIAsyncTask::Run()
 
 void FAIAsyncTask::Stop()
 {
-	FRunnable::Stop();
+	StopTaskCounter.Increment();
+	bIsThreadRunning = false;
 }
 
-bool FAIAsyncTask::IsFinished() const
+void FAIAsyncTask::AddTask(const FGridPointArray3D& GridPoints, const FVector& ChunkLoc)
 {
-	return bIsFinished;
+	BuildingQueue.Enqueue({GridPoints, ChunkLoc});
 }
 
 // Sets default values
 AAIManager::AAIManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 // Called when the game starts or when spawned
@@ -38,36 +52,36 @@ void AAIManager::BeginPlay()
 {
 	Super::BeginPlay();
 	MapChunk = ChunkClass->GetDefaultObject<AMCChunk>();
+	AIThread = new FAIAsyncTask(this);
+	CurrentRunningThread = FRunnableThread::Create(AIThread, TEXT("AI Path Task"));
+}
+
+void AAIManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if(CurrentRunningThread && AIThread->IsRunning())
+	{
+		CurrentRunningThread->Suspend(true);
+		AIThread->StopRunning();
+		CurrentRunningThread->Suspend(false);
+		CurrentRunningThread->Kill(false);
+		CurrentRunningThread->WaitForCompletion();
+
+		AIThread = nullptr;
+		delete CurrentRunningThread;
+	}
 }
 
 // Called every frame
 void AAIManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//Thread update management
-	if(!ChunkToUpdate.IsEmpty())
-	{
-		if(AIThread == nullptr)
-		{
-			AMCChunk* CurrentChunk;
-			ChunkToUpdate.Dequeue(CurrentChunk);
-			AIThread = new FAIAsyncTask(this, CurrentChunk->GridPoints,  CurrentChunk->GetActorLocation());
-			CurrentRunningThread = FRunnableThread::Create(AIThread, TEXT("AI Path Task"));
-		}
-		else if (AIThread->IsFinished())
-		{
-			//DebugAINavGrid();
-			AIThread = nullptr;
-			delete CurrentRunningThread;
-			CurrentRunningThread = nullptr;
-		}
-	}
 }
 
-void AAIManager::AddToChunkUpdateQueue(AMCChunk* Chunk)
+void AAIManager::AddToChunkUpdateQueue(const AMCChunk* Chunk) const
 {
-	ChunkToUpdate.Enqueue(Chunk);
+	AIThread->AddTask(Chunk->GridPoints, Chunk->GetActorLocation());
 }
 
 //TODO: Frequent MeshUpdate can cause the AI generation to access the null memory (it's a call in another thread after all)
