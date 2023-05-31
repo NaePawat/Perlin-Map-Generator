@@ -75,6 +75,13 @@ public:
 };
 //#endregion
 
+UENUM()
+enum class EChunkType: uint8
+{
+	PerlinNoise = 0 UMETA(DisplayName = "Perlin Noise"),
+	PerlinWorm = 1 UMETA(DisplayName = "Perlin Worm")
+};
+
 
 UCLASS()
 class SORTIE_API AMCChunk : public ARealtimeMeshActor
@@ -96,6 +103,10 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setting Generation")
+	EChunkType ChunkType;
+	
 	//#region MarchingCubes
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0), Category="Marching Cubes")
 	int Octaves = 1; // number of noise maps before each of them are added together
@@ -132,6 +143,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Marching Cubes")
 	UMaterialInterface* Material;
 
+	// std::vector<std::vector<std::vector<bool>>> visited(sizeX, std::vector<std::vector<bool>>(sizeY, std::vector<bool>(sizeZ, false)));
 	FGridPointArray3D GridPoints;
 	FVector ChunkCoord;
 
@@ -139,6 +151,25 @@ public:
 	void MakeGridWithNoise(const FVector& MapLoc);
 	void March(const FVector& MapLoc);
 	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
+	//#endregion
+
+	//#region Perlin Worm
+	UPROPERTY(EditAnywhere, Category="Perlin Worm")
+	int MaxWorms = 7;
+
+	UPROPERTY(EditAnywhere, Category="Perlin Worm")
+	int MaxWormLength = 150;
+
+	UPROPERTY(EditAnywhere, Category="Perlin Worm")
+	int MinWormLength = 20;
+
+	UPROPERTY(EditAnywhere, Category="Perlin Worm")
+	int MaxWormRadius;
+	
+	UPROPERTY(EditAnywhere, Category="Perlin Worm")
+	int MinWormRadius;
+
+	void WormifyChunk();
 	//#endregion
 
 	//#region Helpers

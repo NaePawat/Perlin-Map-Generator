@@ -9,6 +9,7 @@
 #include "Map/EndlessMap.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
+#include "Map/PerlinWorm.h"
 
 //#region Helper Classes
 FCube::FCube()
@@ -172,9 +173,17 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 {
 	//check chunk location for sampling the noise
 	const FVector MapLoc = GetActorLocation();
-	
-	MakeGridWithNoise(MapLoc);
-	March(MapLoc);
+
+	if(ChunkType == EChunkType::PerlinNoise)
+	{
+		MakeGridWithNoise(MapLoc);
+		March(MapLoc);
+	}
+
+	else
+	{
+		
+	}
 	
 	//Finished Marching, Let's create a mesh from it
 	if(Vertices.Num() > 0) CreateProcMesh();
@@ -290,7 +299,7 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 	bool bIsEffected = false;
 	for(int x = 0; x<ChunkSize; x++)
 	{
-		for(int y = 0; y<ChunkSize; y++)
+		for(int y = 0; y<ChunkSize; y++) 
 		{
 			for(int z = 0; z<ChunkHeight; z++)
 			{
@@ -314,6 +323,25 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 	});
 
 	TerraformingTask.Wait();
+}
+
+void AMCChunk::WormifyChunk()
+{
+	const FVector ChunkLoc = GetActorLocation();
+	const FVector CenterLoc = FVector(
+		ChunkLoc.X + ChunkSize*Scale,
+		ChunkLoc.Y + ChunkSize*Scale,
+		ChunkLoc.Z + ChunkHeight*Scale
+	);
+	const int NumWorms = FMath::RandRange(1, MaxWorms);
+	for(int i=0; i < NumWorms; i++)
+	{
+		const float WormLength = FMath::RandRange(MinWormLength, MaxWormLength);
+		const float WormRadius = FMath::RandRange(MinWormRadius, MaxWormRadius);
+
+		PerlinWorm* Worm = new PerlinWorm(WormLength, WormRadius, FMath::Sin(WormLength), FMath::Cos(WormRadius), FMath::Tan(WormLength + WormRadius));
+		Worm->Wormify(this, CenterLoc);
+	}
 }
 
 TArray<AMCChunk*> AMCChunk::GetNeighborChunks() const
