@@ -108,7 +108,7 @@ public:
 
 	//Check the size of the terrain as well
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="View Helper")
-	float MaxViewDistance = 100.f;
+	float MaxViewDistance = 30.f;
 
 	FVector GetActorAxisZ() const;
 	

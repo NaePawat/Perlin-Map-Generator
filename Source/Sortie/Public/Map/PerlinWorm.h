@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MCChunk.h"
+#include "EndlessMap.h"
 
 /**
  * 
@@ -15,8 +16,11 @@ public:
 	PerlinWorm(int Dur, int Rad, float P, float Y, float R);
 	~PerlinWorm();
 
+	TArray<AMCChunk*> ChunkToUpdate;
+	
 	int Duration;
 	int Radius;
+	FVector InternalForward;
 	
 	float WormPitchMax = 135.f;
 	float WormYawMax = 135.f;
@@ -26,6 +30,6 @@ public:
 	float WormYaw;
 	float WormRoll;
 
-	void Wormify(AMCChunk* Chunk, const FVector& Loc, int Time = 0);
+	void Wormify(AMCChunk* Chunk, AEndlessMap* ChunkManager, const FVector& Loc, int Time = 0);
 	void RadialAddGrids(AMCChunk* Chunk, int Range, const FVector& Origin) const;
 };

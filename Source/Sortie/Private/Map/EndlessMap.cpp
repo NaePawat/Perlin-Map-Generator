@@ -40,6 +40,7 @@ void AEndlessMap::BeginPlay()
 			if(const AMCChunk* MapChunk = Cast<AMCChunk>(Terrain3DGen->GetDefaultObject()))
 			{
 				ChunkSize = MapChunk->ChunkSize;
+				ChunkHeight = MapChunk->ChunkHeight;
 				ChunkScale = MapChunk->Scale;
 				ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
 			}
@@ -98,9 +99,8 @@ void AEndlessMap::UpdateVisibleChunk3D()
 	//TODO: Implement the limit height
 	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
 	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / (ChunkSize * ChunkScale));
-	const int CurrentChunkCoordZ = FMath::RoundToInt(Viewer->GetActorLocation().Z / (ChunkSize* ChunkScale));
+	const int CurrentChunkCoordZ = FMath::RoundToInt(Viewer->GetActorLocation().Z / (ChunkHeight* ChunkScale));
 
-	//three for loop
 	for(int ZOffset = -ChunkVisibleInViewDst; ZOffset <= ChunkVisibleInViewDst; ZOffset++)
 	{
 		for(int YOffset = -ChunkVisibleInViewDst; YOffset <= ChunkVisibleInViewDst; YOffset++)
@@ -114,6 +114,7 @@ void AEndlessMap::UpdateVisibleChunk3D()
 					{
 						// spawn and add the map chunk
 						AMCChunk* NewMapChunk = Spawn3D(ViewedChunkCoord);
+						NewMapChunk->ChunkCoord = ViewedChunkCoord;
 						MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
 					});
 				}

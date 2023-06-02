@@ -7,9 +7,9 @@
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
 #include "Map/EndlessMap.h"
+#include "Map/PerlinWorm.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
-#include "Map/PerlinWorm.h"
 
 //#region Helper Classes
 FCube::FCube()
@@ -75,6 +75,13 @@ void AMCChunk::BeginPlay()
 	Super::BeginPlay();
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
 	AIManager = Cast<AAIManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAIManager::StaticClass()));
+	EndlessMap = Cast<AEndlessMap>(UGameplayStatics::GetActorOfClass(GetWorld(), AEndlessMap::StaticClass()));
+
+	ChunkCoord = FVector(
+		FMath::RoundToInt(GetActorLocation().X / (ChunkSize*Scale)),
+		FMath::RoundToInt(GetActorLocation().Y / ChunkSize*Scale),
+		FMath::RoundToInt(GetActorLocation().Z / (ChunkHeight*Scale))
+	);
 
 	CreateProceduralMarchingCubesChunk();
 	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &AMCChunk::UpdateAINavigation, 1.f, false, 1.f);
@@ -156,7 +163,7 @@ void AMCChunk::UpdateProcMesh()
 	CleanUpData();
 }
 
-void AMCChunk::UpdateAINavigation()
+void AMCChunk::UpdateAINavigation() const
 {
 	AIManager->AddToChunkUpdateQueue(this);
 }
@@ -176,20 +183,44 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 
 	if(ChunkType == EChunkType::PerlinNoise)
 	{
-		MakeGridWithNoise(MapLoc);
+		MakeGrid(MapLoc);
 		March(MapLoc);
+		if(Vertices.Num() > 0) CreateProcMesh();
 	}
-
 	else
 	{
-		
+		MakeGrid(MapLoc, false);
+		TArray<AMCChunk*> ChunksNeedToUpdate = WormifyChunk(MapLoc);
+		for(AMCChunk* Chunk : ChunksNeedToUpdate)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Chunk To Update: %s"), *Chunk->GetName());
+			Chunk->March(Chunk->GetActorLocation());
+			if(Chunk->MeshSection.IsValid())
+			{
+				Chunk->UpdateProcMesh();
+			}
+			else
+			{
+				Chunk->CreateProcMesh();
+			}
+		}
+		/*for(int x = 0; x < ChunkSize/LOD; x+=2)
+		{
+			FGridPointArray2D GridY;
+			for(int y = 0; y < ChunkSize/LOD; y+=2)
+			{
+				FGridPointArray1D GridZ;
+				for(int z = 0; z < ChunkHeight/LOD; z+=2)
+				{
+					FGridPoint Point = GridPoints.Grids[x].Grids[y].Grids[z];
+					DrawDebugPoint(GetWorld(), Point.Position, 1.f, Point.On ? FColor::Green : FColor::Red,true, -1.f, 0);
+				}
+			}
+		}*/
 	}
-	
-	//Finished Marching, Let's create a mesh from it
-	if(Vertices.Num() > 0) CreateProcMesh();
 }
 
-void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
+void AMCChunk::MakeGrid(const FVector& MapLoc, bool WithNoise)
 {
 	//Check Seeds before adding in
 	const FRandomStream* RandomStream = new FRandomStream(Seed);
@@ -212,25 +243,31 @@ void AMCChunk::MakeGridWithNoise(const FVector& MapLoc)
 			FGridPointArray1D GridZ;
 			for(int z = 0; z < ChunkHeight/LOD; z++)
 			{
-				//we're going to use this for sampling the octaves together
-				float Amplitude = 1.f;
-				float Frequency = 1.f;
-				float Noisiness = 0.f;
-
-				for(int i = 0; i < Octaves; i++)
+				if (WithNoise)
 				{
-					//Perlin Noise 3D
-					const float SampleX = (x + MapLoc.X/Scale) / NoiseScale * Frequency + OctaveOffsets[i].X * Frequency;
-					const float SampleY = (y + MapLoc.Y/Scale) / NoiseScale * Frequency + OctaveOffsets[i].Y * Frequency;
-					const float SampleZ = (z + MapLoc.Z/Scale) / NoiseScale * Frequency + OctaveOffsets[i].Z * Frequency;
+					//we're going to use this for sampling the octaves together
+					float Amplitude = 1.f;
+					float Frequency = 1.f;
+					float Noisiness = 0.f;
 
-					const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
-					Noisiness += PerlinValue * Amplitude;
-					Amplitude *= Persistance;
-					Frequency *= Lacunarity;
+					for(int i = 0; i < Octaves; i++)
+					{
+						//Perlin Noise 3D
+						const float SampleX = (x + MapLoc.X/Scale) / NoiseScale * Frequency + OctaveOffsets[i].X * Frequency;
+						const float SampleY = (y + MapLoc.Y/Scale) / NoiseScale * Frequency + OctaveOffsets[i].Y * Frequency;
+						const float SampleZ = (z + MapLoc.Z/Scale) / NoiseScale * Frequency + OctaveOffsets[i].Z * Frequency;
+
+						const float PerlinValue = FMath::PerlinNoise3D(FVector(SampleX, SampleY, SampleZ));
+						Noisiness += PerlinValue * Amplitude;
+						Amplitude *= Persistance;
+						Frequency *= Lacunarity;
+					}
+					GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), Noisiness, Noisiness >= NoiseThreshold});
 				}
-
-				GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), Noisiness, Noisiness >= NoiseThreshold});
+				else
+				{
+					GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), 0, false});
+				}
 			}
 			GridY.Grids.Add(GridZ);
 		}
@@ -297,11 +334,30 @@ void AMCChunk::March(const FVector& MapLoc)
 void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const float BrushForce)
 {
 	bool bIsEffected = false;
-	for(int x = 0; x<ChunkSize; x++)
+	const FVector ChunkLoc = GetActorLocation();
+
+	const float RangeF = SphereRadius /Scale;
+	const FVector HitLocToGridCal = FVector(
+		FMath::CeilToInt(FMath::Abs(HitLoc.X - ChunkLoc.X)/Scale),
+		FMath::CeilToInt(FMath::Abs(HitLoc.Y - ChunkLoc.Y)/Scale),
+		FMath::FloorToInt(FMath::Abs(HitLoc.Z - ChunkLoc.Z)/Scale)
+		);
+	
+	//make sure this loop doesn't go out of calculation bound
+	const int MinX = HitLocToGridCal.X - 2*RangeF >= 0 ? static_cast<int>(HitLocToGridCal.X - 2 * RangeF) : 0;
+	const int MaxX = HitLocToGridCal.X + 2*RangeF < ChunkSize ? static_cast<int>(HitLocToGridCal.X + 2 * RangeF) : ChunkSize - 1;
+
+	const int MinY = HitLocToGridCal.Y - 2*RangeF >= 0 ? static_cast<int>(HitLocToGridCal.Y - 2 * RangeF) : 0;
+	const int MaxY = HitLocToGridCal.Y + 2*RangeF < ChunkSize ? static_cast<int>(HitLocToGridCal.Y + 2 * RangeF) : ChunkSize - 1;
+
+	const int MinZ = HitLocToGridCal.Z - 2*RangeF >= 0 ? static_cast<int>(HitLocToGridCal.Z - 2 * RangeF) : 0;
+	const int MaxZ = HitLocToGridCal.Z + 2*RangeF < ChunkHeight ? static_cast<int>(HitLocToGridCal.Z + 2 * RangeF) : ChunkHeight - 1;
+	
+	for(int x = MinX; x <= MaxX; ++x)
 	{
-		for(int y = 0; y<ChunkSize; y++) 
+		for(int y = MinY; y <= MaxY; ++y)
 		{
-			for(int z = 0; z<ChunkHeight; z++)
+			for(int z = MinZ; z <= MaxZ; ++z)
 			{
 				auto& [Position, Value, On] = GridPoints.Grids[x].Grids[y].Grids[z];
 				//the grid is within the change radius, let's update its value
@@ -325,13 +381,13 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 	TerraformingTask.Wait();
 }
 
-void AMCChunk::WormifyChunk()
+TArray<AMCChunk*> AMCChunk::WormifyChunk(const FVector& ChunkLoc)
 {
-	const FVector ChunkLoc = GetActorLocation();
+	TArray<AMCChunk*> ChunkChange;
 	const FVector CenterLoc = FVector(
-		ChunkLoc.X + ChunkSize*Scale,
-		ChunkLoc.Y + ChunkSize*Scale,
-		ChunkLoc.Z + ChunkHeight*Scale
+		(ChunkLoc.X + ChunkSize*Scale) / 2,
+		(ChunkLoc.Y + ChunkSize*Scale) / 2,
+		(ChunkLoc.Z + ChunkHeight*Scale) / 2
 	);
 	const int NumWorms = FMath::RandRange(1, MaxWorms);
 	for(int i=0; i < NumWorms; i++)
@@ -340,35 +396,35 @@ void AMCChunk::WormifyChunk()
 		const float WormRadius = FMath::RandRange(MinWormRadius, MaxWormRadius);
 
 		PerlinWorm* Worm = new PerlinWorm(WormLength, WormRadius, FMath::Sin(WormLength), FMath::Cos(WormRadius), FMath::Tan(WormLength + WormRadius));
-		Worm->Wormify(this, CenterLoc);
+		Worm->Wormify(this, EndlessMap, CenterLoc);
+		for(AMCChunk* Chunk : Worm->ChunkToUpdate)
+		{
+			ChunkChange.AddUnique(Chunk);
+		}
 	}
+	return ChunkChange;
 }
 
 TArray<AMCChunk*> AMCChunk::GetNeighborChunks() const
 {
-	if(AEndlessMap* EndlessMap = Cast<AEndlessMap>(UGameplayStatics::GetActorOfClass(GetWorld(), AEndlessMap::StaticClass())))
-	{
-		TArray<AMCChunk*> Neighbors;
+	TArray<AMCChunk*> Neighbors;
 
-		for(int x = -1; x<=1 ; ++x)
+	for(int x = -1; x<=1 ; ++x)
+	{
+		for(int y = -1; y<=1 ; ++y)
 		{
-			for(int y = -1; y<=1 ; ++y)
+			for(int z = -1; z<=1 ; ++z)
 			{
-				for(int z = -1; z<=1 ; ++z)
+				if (x == 0 && y == 0 && z == 0) continue;
+				const FVector CurrentCoord = FVector(ChunkCoord.X + x, ChunkCoord.Y + y, ChunkCoord.Z + z);
+				if(EndlessMap->MapChunkDict.Contains(CurrentCoord))
 				{
-					if (x == 0 && y == 0 && z == 0) continue;
-					const FVector CurrentCoord = FVector(ChunkCoord.X + x, ChunkCoord.Y + y, ChunkCoord.Z + z);
-					if(EndlessMap->MapChunkDict.Contains(CurrentCoord))
-					{
-						Neighbors.Add(Cast<AMCChunk>(EndlessMap->MapChunkDict[CurrentCoord]));
-					}
+					Neighbors.Add(Cast<AMCChunk>(EndlessMap->MapChunkDict[CurrentCoord]));
 				}
 			}
 		}
-
-		return Neighbors;
 	}
-	
-	return TArray<AMCChunk*>();
+
+	return Neighbors;
 }
 

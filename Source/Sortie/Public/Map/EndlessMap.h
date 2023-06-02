@@ -42,6 +42,7 @@ protected:
 	TSubclassOf<AMCChunk> Terrain3DGen;
 
 	int ChunkSize = 0;
+	int ChunkHeight = 0;
 	float ChunkScale = 0;
 	int ChunkVisibleInViewDst = 0;
 	

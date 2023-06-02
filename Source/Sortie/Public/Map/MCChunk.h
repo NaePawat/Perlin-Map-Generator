@@ -11,6 +11,7 @@
 
 //forward declaration
 class AAIManager;
+class AEndlessMap;
 class ASortieCharacterBase;
 class UMaterialInterface;
 
@@ -98,6 +99,9 @@ protected:
 	
 	UPROPERTY()
 	AAIManager* AIManager;
+
+	UPROPERTY()
+	AEndlessMap* EndlessMap;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -148,9 +152,10 @@ public:
 	FVector ChunkCoord;
 
 	void CreateProceduralMarchingCubesChunk();
-	void MakeGridWithNoise(const FVector& MapLoc);
+	void MakeGrid(const FVector& MapLoc, bool WithNoise = true);
 	void March(const FVector& MapLoc);
 	void Terraform(const FVector& HitLoc, float SphereRadius, float BrushForce);
+	static float SmoothStep(const float MinValue, const float MaxValue, const float Dist);
 	//#endregion
 
 	//#region Perlin Worm
@@ -169,7 +174,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Perlin Worm")
 	int MinWormRadius;
 
-	void WormifyChunk();
+	TArray<AMCChunk*> WormifyChunk(const FVector& ChunkLoc);
 	//#endregion
 
 	//#region Helpers
@@ -196,11 +201,10 @@ private:
 	TArray<FVector> Normals;
 
 	FVector InterpolateEdgePosition(const FGridPoint& CornerIndexA, const FGridPoint& CornerIndexB) const;
-	static float SmoothStep(const float MinValue, const float MaxValue, const float Dist);
 	
 	void CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& CornerGridB, const FVector& MapLoc);
 	void CreateProcMesh();
 	void UpdateProcMesh();
-	void UpdateAINavigation();
+	void UpdateAINavigation() const;
 	void CleanUpData();
 };
