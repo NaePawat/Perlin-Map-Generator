@@ -112,7 +112,6 @@ FVector AMCChunk::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const 
 
 float AMCChunk::SmoothStep(const float MinValue, const float MaxValue, const float Dist)
 {
-	//interpolation function = -2x^3 + 3x^2
 	const float DistMu = (Dist - MinValue) / (MaxValue - MinValue);
 	return DistMu * (Dist / MinValue * 100);
 }
@@ -262,6 +261,7 @@ void AMCChunk::MakeGrid(const FVector& MapLoc, bool WithNoise)
 						Amplitude *= Persistance;
 						Frequency *= Lacunarity;
 					}
+					
 					GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), Noisiness, Noisiness >= NoiseThreshold});
 				}
 				else
