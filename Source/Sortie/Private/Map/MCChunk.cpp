@@ -137,10 +137,6 @@ void AMCChunk::CreateProcMesh()
 	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
 	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
 	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
-
-	//Mesh->OnRenderDataChanged().AddLambda([=](URealtimeMesh* RealtimeMesh, bool bShouldProxyRecreate)
-	//{
-	//});
 	
 	CleanUpData();
 }
@@ -192,30 +188,9 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 		TArray<AMCChunk*> ChunksNeedToUpdate = WormifyChunk(MapLoc);
 		for(AMCChunk* Chunk : ChunksNeedToUpdate)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Chunk To Update: %s"), *Chunk->GetName());
 			Chunk->March(Chunk->GetActorLocation());
-			if(Chunk->MeshSection.IsValid())
-			{
-				Chunk->UpdateProcMesh();
-			}
-			else
-			{
-				Chunk->CreateProcMesh();
-			}
+			Chunk->MeshSection.IsValid() ? Chunk->UpdateProcMesh() : Chunk->CreateProcMesh();
 		}
-		/*for(int x = 0; x < ChunkSize/LOD; x+=2)
-		{
-			FGridPointArray2D GridY;
-			for(int y = 0; y < ChunkSize/LOD; y+=2)
-			{
-				FGridPointArray1D GridZ;
-				for(int z = 0; z < ChunkHeight/LOD; z+=2)
-				{
-					FGridPoint Point = GridPoints.Grids[x].Grids[y].Grids[z];
-					DrawDebugPoint(GetWorld(), Point.Position, 1.f, Point.On ? FColor::Green : FColor::Red,true, -1.f, 0);
-				}
-			}
-		}*/
 	}
 }
 

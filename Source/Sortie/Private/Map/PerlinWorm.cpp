@@ -29,7 +29,12 @@ void PerlinWorm::Wormify(AMCChunk* Chunk, AEndlessMap* ChunkManager, const FVect
 {
 	if(!ChunkToUpdate.Contains(Chunk)) ChunkToUpdate.Add(Chunk);
 	const FVector MapLoc = Chunk->GetActorLocation();
-	RadialAddGrids(Chunk, FMath::PerlinNoise3D(Loc/Chunk->Scale)*Radius/2 + Radius, Loc);
+	TArray<AMCChunk*> ChunksNeedCalculation = Chunk->GetNeighborChunks();
+	ChunksNeedCalculation.Add(Chunk);
+	for(AMCChunk* CalChunk : ChunksNeedCalculation)
+	{
+		RadialAddGrids(CalChunk, FMath::PerlinNoise3D(Loc/Chunk->Scale)*Radius/2 + Radius, Loc);
+	}
 
 	if (Time < Duration)
 	{
@@ -54,7 +59,7 @@ void PerlinWorm::Wormify(AMCChunk* Chunk, AEndlessMap* ChunkManager, const FVect
 
 		FVector CurrentCoord = Chunk->ChunkCoord;
 		const FVector NewPos = Loc + InternalForward*Chunk->Scale;
-		DrawDebugLine(Chunk->GetWorld(),Loc, NewPos, FColor::Orange, true, -1.f, 0.f, 3.f);
+		//DrawDebugLine(Chunk->GetWorld(),Loc, NewPos, FColor::Orange, true, -1.f, 0.f, 3.f);
 
 		//Check if it's still in the same chunk or not
 		CurrentCoord.X = NewPos.X < MapLoc.X ? CurrentCoord.X - 1 : NewPos.X <= MapLoc.X + Chunk->Scale * Chunk->ChunkSize ? CurrentCoord.X : CurrentCoord.X + 1;
@@ -70,7 +75,6 @@ void PerlinWorm::Wormify(AMCChunk* Chunk, AEndlessMap* ChunkManager, const FVect
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Worm Slip to other Chunk"));
 				AMCChunk* CurrentChunk = Cast<AMCChunk>(ChunkManager->MapChunkDict[CurrentCoord]);
 				Wormify(CurrentChunk, ChunkManager, NewPos, Time + 1);
 			}

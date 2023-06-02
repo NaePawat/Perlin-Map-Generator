@@ -19,9 +19,7 @@ uint32 FAIAsyncTask::Run()
 		{
 			FNavBuilding Data;
 			BuildingQueue.Dequeue(Data);
-			UE_LOG(LogTemp, Warning, TEXT("Create AI Nav System"));
 			AIManager->CreateAINavSystem(Data.GridPoints, Data.ChunkLoc);
-			UE_LOG(LogTemp, Warning, TEXT("Finished AI Nav System"));
 		}
 	}
 	SyncObject.Unlock();
