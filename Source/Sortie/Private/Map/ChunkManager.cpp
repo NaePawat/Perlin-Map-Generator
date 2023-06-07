@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Map/EndlessMap.h"
+#include "Map/ChunkManager.h"
 #include "Async/Async.h"
 #include "Kismet/GameplayStatics.h"
 #include "Map/MCChunk.h"
@@ -9,7 +9,7 @@
 #include "SortieCharacterBase.h"
 
 // Sets default values
-AEndlessMap::AEndlessMap()
+AChunkManager::AChunkManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -17,7 +17,7 @@ AEndlessMap::AEndlessMap()
 }
 
 // Called when the game starts or when spawned
-void AEndlessMap::BeginPlay()
+void AChunkManager::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -31,7 +31,14 @@ void AEndlessMap::BeginPlay()
 			{
 				ChunkSize = MapChunk->ChunkSize - 1;
 				ChunkScale = MapChunk->Scale;
-				ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
+				if (Endless)
+				{
+					ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
+				}
+				else
+				{
+					InitialSpawn2D();
+				}
 			}
 		}
 		break;
@@ -42,34 +49,89 @@ void AEndlessMap::BeginPlay()
 				ChunkSize = MapChunk->ChunkSize;
 				ChunkHeight = MapChunk->ChunkHeight;
 				ChunkScale = MapChunk->Scale;
-				ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
+				if (Endless)
+				{
+					ChunkVisibleInViewDst = FMath::RoundToInt(Viewer->MaxViewDistance / ChunkSize);
+				}
+				else
+				{
+					InitialSpawn3D();
+				}
 			}
 		}
 		break;
 	}
 }
 
-// Called every frame
-void AEndlessMap::Tick(float DeltaTime)
+void AChunkManager::InitialSpawn2D()
 {
-	Super::Tick(DeltaTime);
-
-	switch(GenerateChunkType)
+	for(int x = 0; x<SpawnSize; x++)
 	{
-	case EGenerateType::PerlinNoise2D:
+		for(int y=0; y<SpawnSize; y++)
 		{
-			UpdateVisibleChunk2D();
+			// spawn and add the map chunk
+			FTransform SpawnTransform;
+			FActorSpawnParameters SpawnInfo;
+			SpawnTransform.SetLocation(FVector(x*ChunkSize*ChunkScale, y*ChunkSize*ChunkScale,0));
+				
+			ATerrainChunk* NewMapChunk = GetWorld()->SpawnActor<ATerrainChunk>(Terrain2DGen, SpawnTransform,SpawnInfo);
+			NewMapChunk->ChunkCoord = FVector(x,y,0);
+				
+			MapChunkDict.Add(FVector(x,y,0), NewMapChunk);
 		}
-		break;
-	case EGenerateType::PerlinNoise3D:
-		{
-			UpdateVisibleChunk3D();
-		}
-		break;
 	}
 }
 
-void AEndlessMap::UpdateVisibleChunk2D()
+void AChunkManager::InitialSpawn3D()
+{
+	TArray<AMCChunk*> Chunks;
+	for(int x = 0; x<SpawnSize; x++)
+	{
+		for(int y=0; y<SpawnSize; y++)
+		{
+			for(int z=0; z<SpawnHeight; z++)
+			{
+				const FVector CurrentCoord = FVector(x,y,z);
+				AMCChunk* NewMapChunk = Spawn3D(CurrentCoord);
+				MapChunkDict.Add(CurrentCoord, NewMapChunk);
+				Chunks.Add(NewMapChunk);
+				NewMapChunk->ChunkType == EChunkType::PerlinNoise ?
+					NewMapChunk->MakeGrid(NewMapChunk->GetActorLocation()) :
+					NewMapChunk->MakeGrid(NewMapChunk->GetActorLocation(), false);
+			}
+		}
+	}
+	
+	for(AMCChunk* Chunk : Chunks)
+	{
+		Chunk->CreateProceduralMarchingCubesChunk();
+	}
+}
+
+// Called every frame
+void AChunkManager::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (Endless)
+	{
+		switch(GenerateChunkType)
+		{
+		case EGenerateType::PerlinNoise2D:
+			{
+				UpdateVisibleChunk2D();
+			}
+			break;
+		case EGenerateType::PerlinNoise3D:
+			{
+				UpdateVisibleChunk3D();
+			}
+			break;
+		}
+	}
+}
+
+void AChunkManager::UpdateVisibleChunk2D()
 {
 	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
 	const int CurrentChunkCoordY = FMath::RoundToInt(Viewer->GetActorLocation().Y / (ChunkSize * ChunkScale));
@@ -94,7 +156,7 @@ void AEndlessMap::UpdateVisibleChunk2D()
 	}
 }
 
-void AEndlessMap::UpdateVisibleChunk3D()
+void AChunkManager::UpdateVisibleChunk3D()
 {
 	//TODO: Implement the limit height
 	const int CurrentChunkCoordX = FMath::RoundToInt(Viewer->GetActorLocation().X / (ChunkSize * ChunkScale));
@@ -116,6 +178,7 @@ void AEndlessMap::UpdateVisibleChunk3D()
 						AMCChunk* NewMapChunk = Spawn3D(ViewedChunkCoord);
 						NewMapChunk->ChunkCoord = ViewedChunkCoord;
 						MapChunkDict.Add(ViewedChunkCoord, NewMapChunk);
+						NewMapChunk->CreateProceduralMarchingCubesChunk();
 					});
 				}
 			}
@@ -123,18 +186,18 @@ void AEndlessMap::UpdateVisibleChunk3D()
 	}
 }
 
-AMCChunk* AEndlessMap::Spawn3D(const FVector& ViewedChunkCoord) const
+AMCChunk* AChunkManager::Spawn3D(const FVector& ChunkCoord) const
 {
 	// spawn and add the map chunk
 	FTransform SpawnTransform;
 	const FActorSpawnParameters SpawnInfo;
 	SpawnTransform.SetLocation(FVector(
-		ViewedChunkCoord.X*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.X,
-		ViewedChunkCoord.Y*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Y,
-		ViewedChunkCoord.Z*ChunkSize*ChunkScale - ChunkScale*ViewedChunkCoord.Z));
+		ChunkCoord.X*ChunkSize*ChunkScale - ChunkScale*ChunkCoord.X,
+		ChunkCoord.Y*ChunkSize*ChunkScale - ChunkScale*ChunkCoord.Y,
+		ChunkCoord.Z*ChunkSize*ChunkScale - ChunkScale*ChunkCoord.Z));
 
 	AMCChunk* NewMapChunk = GetWorld()->SpawnActor<AMCChunk>(Terrain3DGen, SpawnTransform, SpawnInfo);
-	NewMapChunk->ChunkCoord = ViewedChunkCoord;
+	NewMapChunk->ChunkCoord = ChunkCoord;
 
 	return NewMapChunk;
 }

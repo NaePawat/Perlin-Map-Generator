@@ -25,7 +25,7 @@ PerlinWorm::~PerlinWorm()
 {
 }
 
-void PerlinWorm::Wormify(AMCChunk* Chunk, AEndlessMap* ChunkManager, const FVector& Loc, int Time)
+void PerlinWorm::Wormify(AMCChunk* Chunk, AChunkManager* ChunkManager, const FVector& Loc, int Time)
 {
 	if(!ChunkToUpdate.Contains(Chunk)) ChunkToUpdate.Add(Chunk);
 	const FVector MapLoc = Chunk->GetActorLocation();
@@ -118,7 +118,7 @@ void PerlinWorm::RadialAddGrids(AMCChunk* Chunk, int Range, const FVector& Origi
 						const float TerrainFormValue = Chunk->SmoothStep(Range, Range * 0.5, GridDist) * Chunk->NoiseThreshold * 0.8 / Chunk->NoiseScale;
 						Value += TerrainFormValue; 
 						On = Value >= Chunk->NoiseThreshold;
-					}
+					} 
 				}
 			}
 		}

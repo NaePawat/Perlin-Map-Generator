@@ -2,7 +2,7 @@
 
 
 #include "Map/TerrainChunk.h"
-#include "Map/EndlessMap.h"
+#include "Map/ChunkManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/RandomStream.h"
 #include "ProceduralMeshComponent.h"
@@ -61,7 +61,7 @@ void ATerrainChunk::SetVisible(const bool Visible)
 	SetActorHiddenInGame(!Visible);
 	if(!Visible)
 	{
-		if(AEndlessMap* EndlessMap = Cast<AEndlessMap>(UGameplayStatics::GetActorOfClass(GetWorld(), AEndlessMap::StaticClass())))
+		if(AChunkManager* EndlessMap = Cast<AChunkManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AChunkManager::StaticClass())))
 		{
 			EndlessMap->MapChunkDict.Remove(ChunkCoord);
 			Destroy();

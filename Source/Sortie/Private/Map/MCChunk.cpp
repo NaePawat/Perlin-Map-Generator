@@ -6,7 +6,7 @@
 #include "Async/Async.h"
 #include "Constant/MarchingConst.h"
 #include "Kismet/GameplayStatics.h"
-#include "Map/EndlessMap.h"
+#include "Map/ChunkManager.h"
 #include "Map/PerlinWorm.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
@@ -75,16 +75,13 @@ void AMCChunk::BeginPlay()
 	Super::BeginPlay();
 	Viewer = Cast<ASortieCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(), ASortieCharacterBase::StaticClass()));
 	AIManager = Cast<AAIManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAIManager::StaticClass()));
-	EndlessMap = Cast<AEndlessMap>(UGameplayStatics::GetActorOfClass(GetWorld(), AEndlessMap::StaticClass()));
+	ChunkManager = Cast<AChunkManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AChunkManager::StaticClass()));
 
 	ChunkCoord = FVector(
 		FMath::RoundToInt(GetActorLocation().X / (ChunkSize*Scale)),
 		FMath::RoundToInt(GetActorLocation().Y / ChunkSize*Scale),
 		FMath::RoundToInt(GetActorLocation().Z / (ChunkHeight*Scale))
 	);
-
-	CreateProceduralMarchingCubesChunk();
-	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &AMCChunk::UpdateAINavigation, 1.f, false, 1.f);
 }
 
 // Called every frame
@@ -178,13 +175,11 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 
 	if(ChunkType == EChunkType::PerlinNoise)
 	{
-		MakeGrid(MapLoc);
 		March(MapLoc);
 		if(Vertices.Num() > 0) CreateProcMesh();
 	}
 	else
 	{
-		MakeGrid(MapLoc, false);
 		TArray<AMCChunk*> ChunksNeedToUpdate = WormifyChunk(MapLoc);
 		for(AMCChunk* Chunk : ChunksNeedToUpdate)
 		{
@@ -192,6 +187,7 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 			Chunk->MeshSection.IsValid() ? Chunk->UpdateProcMesh() : Chunk->CreateProcMesh();
 		}
 	}
+	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &AMCChunk::UpdateAINavigation, 1.f, false, 1.f);
 }
 
 void AMCChunk::MakeGrid(const FVector& MapLoc, bool WithNoise)
@@ -371,7 +367,7 @@ TArray<AMCChunk*> AMCChunk::WormifyChunk(const FVector& ChunkLoc)
 		const float WormRadius = FMath::RandRange(MinWormRadius, MaxWormRadius);
 
 		PerlinWorm* Worm = new PerlinWorm(WormLength, WormRadius, FMath::Sin(WormLength), FMath::Cos(WormRadius), FMath::Tan(WormLength + WormRadius));
-		Worm->Wormify(this, EndlessMap, CenterLoc);
+		Worm->Wormify(this, ChunkManager, CenterLoc);
 		for(AMCChunk* Chunk : Worm->ChunkToUpdate)
 		{
 			ChunkChange.AddUnique(Chunk);
@@ -392,9 +388,9 @@ TArray<AMCChunk*> AMCChunk::GetNeighborChunks() const
 			{
 				if (x == 0 && y == 0 && z == 0) continue;
 				const FVector CurrentCoord = FVector(ChunkCoord.X + x, ChunkCoord.Y + y, ChunkCoord.Z + z);
-				if(EndlessMap->MapChunkDict.Contains(CurrentCoord))
+				if(ChunkManager->MapChunkDict.Contains(CurrentCoord))
 				{
-					Neighbors.Add(Cast<AMCChunk>(EndlessMap->MapChunkDict[CurrentCoord]));
+					Neighbors.Add(Cast<AMCChunk>(ChunkManager->MapChunkDict[CurrentCoord]));
 				}
 			}
 		}

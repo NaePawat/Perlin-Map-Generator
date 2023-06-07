@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MCChunk.h"
-#include "EndlessMap.h"
+#include "ChunkManager.h"
 
 /**
  * 
@@ -30,6 +30,6 @@ public:
 	float WormYaw;
 	float WormRoll;
 
-	void Wormify(AMCChunk* Chunk, AEndlessMap* ChunkManager, const FVector& Loc, int Time = 0);
+	void Wormify(AMCChunk* Chunk, AChunkManager* ChunkManager, const FVector& Loc, int Time = 0);
 	void RadialAddGrids(AMCChunk* Chunk, int Range, const FVector& Origin) const;
 };

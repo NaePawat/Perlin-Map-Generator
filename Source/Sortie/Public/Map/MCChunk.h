@@ -11,7 +11,7 @@
 
 //forward declaration
 class AAIManager;
-class AEndlessMap;
+class AChunkManager;
 class ASortieCharacterBase;
 class UMaterialInterface;
 
@@ -101,7 +101,7 @@ protected:
 	AAIManager* AIManager;
 
 	UPROPERTY()
-	AEndlessMap* EndlessMap;
+	AChunkManager* ChunkManager;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
