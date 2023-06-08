@@ -106,7 +106,7 @@ FVector AMCChunk::InterpolateEdgePosition(const FGridPoint& CornerIndexA, const 
 		CornerIndexA.Position.Z + Mu * (CornerIndexB.Position.Z - CornerIndexA.Position.Z)
 	);
 }
-
+ 
 float AMCChunk::SmoothStep(const float MinValue, const float MaxValue, const float Dist)
 {
 	const float DistMu = (Dist - MinValue) / (MaxValue - MinValue);
@@ -237,7 +237,7 @@ void AMCChunk::MakeGrid(const FVector& MapLoc, bool WithNoise)
 				}
 				else
 				{
-					GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), 0, false});
+					GridZ.Grids.Add({FVector(x*Scale*LOD + MapLoc.X, y*Scale*LOD + MapLoc.Y, z*Scale*LOD + MapLoc.Z), NoiseThreshold, true});
 				}
 			}
 			GridY.Grids.Add(GridZ);
@@ -360,11 +360,13 @@ TArray<AMCChunk*> AMCChunk::WormifyChunk(const FVector& ChunkLoc)
 		(ChunkLoc.Y + ChunkSize*Scale) / 2,
 		(ChunkLoc.Z + ChunkHeight*Scale) / 2
 	);
-	const int NumWorms = FMath::RandRange(1, MaxWorms);
+
+	const FRandomStream* RandomStream = new FRandomStream(Seed);
+	const int NumWorms = RandomStream->RandRange(1, MaxWorms);
 	for(int i=0; i < NumWorms; i++)
 	{
-		const float WormLength = FMath::RandRange(MinWormLength, MaxWormLength);
-		const float WormRadius = FMath::RandRange(MinWormRadius, MaxWormRadius);
+		const float WormLength = RandomStream->RandRange(MinWormLength, MaxWormLength);
+		const float WormRadius = RandomStream->RandRange(MinWormRadius, MaxWormRadius);
 
 		PerlinWorm* Worm = new PerlinWorm(WormLength, WormRadius, FMath::Sin(WormLength), FMath::Cos(WormRadius), FMath::Tan(WormLength + WormRadius));
 		Worm->Wormify(this, ChunkManager, CenterLoc);

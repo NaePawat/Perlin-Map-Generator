@@ -113,10 +113,10 @@ void PerlinWorm::RadialAddGrids(AMCChunk* Chunk, int Range, const FVector& Origi
 				auto& [Position, Value, On] = Chunk->GridPoints.Grids[x].Grids[y].Grids[z];
 				if(const float GridDist = FVector::Dist(Origin, Position); GridDist <= Range)
 				{
-					if (!On)
+					if (On)
 					{
 						const float TerrainFormValue = Chunk->SmoothStep(Range, Range * 0.5, GridDist) * Chunk->NoiseThreshold * 0.8 / Chunk->NoiseScale;
-						Value += TerrainFormValue; 
+						Value -= TerrainFormValue; 
 						On = Value >= Chunk->NoiseThreshold;
 					} 
 				}
