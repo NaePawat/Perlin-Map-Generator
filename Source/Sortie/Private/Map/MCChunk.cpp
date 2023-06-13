@@ -10,6 +10,7 @@
 #include "Map/PerlinWorm.h"
 #include "RealtimeMeshLibrary.h"
 #include "SortieCharacterBase.h"
+#include "Kismet/KismetMathLibrary.h"
 
 //#region Helper Classes
 FCube::FCube()
@@ -82,6 +83,13 @@ void AMCChunk::BeginPlay()
 		FMath::RoundToInt(GetActorLocation().Y / ChunkSize*Scale),
 		FMath::RoundToInt(GetActorLocation().Z / (ChunkHeight*Scale))
 	);
+
+	MeshDetails.Init({
+		TArray<FVector>(),
+		TArray<int>(),
+		TArray<FVector2d>(),
+		TArray<FVector>()
+	}, MaterialInstance.Num());
 }
 
 // Called every frame
@@ -125,34 +133,45 @@ void AMCChunk::CreateVertex(const FGridPoint& CornerGridA, const FGridPoint& Cor
 void AMCChunk::CreateProcMesh()
 {
 	//Runtime Mesh Creation
-	FRealtimeMeshSimpleMeshData MeshData;
-	MeshData.Positions = Vertices;
-	MeshData.Triangles = Triangles;
-	MeshData.UV0 = UV0;
-	MeshData.Normals = Normals;
-	
-	Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
-	Mesh->SetupMaterialSlot(0, "Primary Material", Material);
-	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
-	
-	CleanUpData();
+	for (int i = 0; i< MaterialInstance.Num(); i++)
+	{
+		FRealtimeMeshSimpleMeshData MeshData;
+		MeshData.Positions = MeshDetails[i].Vertices;
+		MeshData.Triangles = MeshDetails[i].Triangles;
+		MeshData.UV0 = MeshDetails[i].UV0;
+		MeshData.Normals = MeshDetails[i].Normals;
+
+		FString SlotName = FString::FromInt(i);
+		Mesh = RealtimeMesh->InitializeRealtimeMesh<URealtimeMeshSimple>();
+		//UE_LOG(LogTemp, Warning, TEXT("Generate %s with %d vertices"), *MaterialInstance[i].Material->GetName(), MeshDetails[i].Vertices.Num());
+		Mesh->SetupMaterialSlot(i, FName(*SlotName), MaterialInstance[i].Material);
+		MeshSection.Add(Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, i), MeshData, true));
+	}
+
+	CleanUpSectionData();
 }
 
 void AMCChunk::UpdateProcMesh()
 {
 	//Runtime Mesh Creation
-	FRealtimeMeshSimpleMeshData MeshData;
-	MeshData.Positions = Vertices;
-	MeshData.Triangles = Triangles;
-	MeshData.UV0 = UV0;
-	MeshData.Normals = Normals;
+	for(FRealtimeMeshSectionKey Section : MeshSection)
+	{
+		Mesh->RemoveSection(Section);
+	}
 
-	Mesh->RemoveSection(MeshSection);
-	MeshSection = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, 0), MeshData, true);
-
+	for (int i = 0; i< MaterialInstance.Num(); i++)
+	{
+		FRealtimeMeshSimpleMeshData MeshData;
+		MeshData.Positions = MeshDetails[i].Vertices;
+		MeshData.Triangles = MeshDetails[i].Triangles;
+		MeshData.UV0 = MeshDetails[i].UV0;
+		MeshData.Normals = MeshDetails[i].Normals;
+		MeshSection[i] = Mesh->CreateMeshSection(0, FRealtimeMeshSectionConfig(ERealtimeMeshSectionDrawType::Static, i), MeshData, true);
+	}
+	
 	//AI Nav need to be updated
 	UpdateAINavigation();
-	CleanUpData();
+	CleanUpSectionData();
 }
 
 void AMCChunk::UpdateAINavigation() const
@@ -160,12 +179,23 @@ void AMCChunk::UpdateAINavigation() const
 	AIManager->AddToChunkUpdateQueue(this);
 }
 
-void AMCChunk::CleanUpData()
+void AMCChunk::CleanUpBuildData()
 {
 	Vertices.Empty();
 	Triangles.Empty();
 	UV0.Empty();
 	Normals.Empty();
+}
+
+void AMCChunk::CleanUpSectionData()
+{
+	MeshDetails.Empty();
+	MeshDetails.Init({
+		TArray<FVector>(),
+		TArray<int>(),
+		TArray<FVector2d>(),
+		TArray<FVector>()
+	}, MaterialInstance.Num());
 }
 
 void AMCChunk::CreateProceduralMarchingCubesChunk()
@@ -176,7 +206,7 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 	if(ChunkType == EChunkType::PerlinNoise)
 	{
 		March(MapLoc);
-		if(Vertices.Num() > 0) CreateProcMesh();
+		if(MeshDetails[0].Vertices.Num() > 0) CreateProcMesh();
 	}
 	else
 	{
@@ -184,7 +214,7 @@ void AMCChunk::CreateProceduralMarchingCubesChunk()
 		for(AMCChunk* Chunk : ChunksNeedToUpdate)
 		{
 			Chunk->March(Chunk->GetActorLocation());
-			Chunk->MeshSection.IsValid() ? Chunk->UpdateProcMesh() : Chunk->CreateProcMesh();
+			Chunk->MeshSection.Num() > 0 ? Chunk->UpdateProcMesh() : Chunk->CreateProcMesh();
 		}
 	}
 	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &AMCChunk::UpdateAINavigation, 1.f, false, 1.f);
@@ -293,9 +323,31 @@ void AMCChunk::March(const FVector& MapLoc)
 					CreateVertex(CurrentCube.Points[B0], CurrentCube.Points[B1], MapLoc);
 					CreateVertex(CurrentCube.Points[C0], CurrentCube.Points[C1], MapLoc);
 
-					Triangles.Add(Vertices.Num() - 3);
-					Triangles.Add(Vertices.Num() - 2);
-					Triangles.Add(Vertices.Num() - 1);
+					//Check Normal to the ground
+					FVector First = Vertices[2] - Vertices[0];
+					FVector Second = Vertices[1] - Vertices[0];
+					FVector Normal = FVector::CrossProduct(First, Second);
+					Normal.Normalize();
+
+					const float Angle = UKismetMathLibrary::Acos(FVector::DotProduct(FVector(0,0.,-1), Normal));
+
+					int Index = 0;
+					for (int j = 0; j < MaterialInstance.Num(); j++)
+					{
+						if (Angle > MaterialInstance[j].Angle) Index = j;
+					}
+
+					//UE_LOG(LogTemp, Warning, TEXT("Angle %f : Index %d"), Angle, Index);
+
+					//Add all the necessary info to correct slot
+					MeshDetails[Index].Vertices.Append(Vertices);
+					MeshDetails[Index].Triangles.Add(MeshDetails[Index].Vertices.Num() - 3);
+					MeshDetails[Index].Triangles.Add(MeshDetails[Index].Vertices.Num() - 2);
+					MeshDetails[Index].Triangles.Add(MeshDetails[Index].Vertices.Num() - 1);
+					MeshDetails[Index].UV0.Append(UV0);
+					MeshDetails[Index].Normals.Append(Normals);
+
+					CleanUpBuildData();
 				}
 			}
 		}
@@ -346,7 +398,7 @@ void AMCChunk::Terraform(const FVector& HitLoc, const float SphereRadius, const 
 	const TFuture<void> TerraformingTask = Async(EAsyncExecution::ThreadPool, [=]
 	{
 		if (bIsEffected) March(GetActorLocation());
-		if (Vertices.Num() > 0) UpdateProcMesh();
+		if (MeshDetails[0].Vertices.Num() > 0) UpdateProcMesh();
 	});
 
 	TerraformingTask.Wait();

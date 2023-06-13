@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "HAL/ThreadSafeBool.h"
 #include "RealtimeMeshActor.h"
 #include "RealtimeMeshSimple.h"
 #include "MCChunk.generated.h"
@@ -36,6 +35,26 @@ struct FGridPointArray2D
 struct FGridPointArray3D
 {
 	TArray<FGridPointArray2D> Grids;
+};
+
+USTRUCT(BlueprintType)
+struct FMatInst
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* Material;
+
+	UPROPERTY(EditAnywhere)
+	float Angle;
+};
+
+struct FMeshDetail
+{
+	TArray<FVector> Vertices;
+	TArray<int> Triangles;
+	TArray<FVector2D> UV0;
+	TArray<FVector> Normals;
 };
 //#endregion
 
@@ -135,6 +154,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 0), Category="Marching Cubes")
 	int ChunkSize = 1; //on first load chunk's size
+	
 	UPROPERTY(EditAnywhere, meta=(ClampMin = 1), Category="Marching Cubes")
 	int ChunkHeight = 1; //on first load chunk's height
 
@@ -145,7 +165,7 @@ public:
 	int LOD = 1;
 
 	UPROPERTY(EditAnywhere, Category="Marching Cubes")
-	UMaterialInterface* Material;
+	TArray<FMatInst> MaterialInstance;
 
 	// std::vector<std::vector<std::vector<bool>>> visited(sizeX, std::vector<std::vector<bool>>(sizeY, std::vector<bool>(sizeZ, false)));
 	FGridPointArray3D GridPoints;
@@ -193,8 +213,10 @@ private:
 	UPROPERTY()
 	URealtimeMeshSimple* Mesh;
 
-	FRealtimeMeshSectionKey MeshSection;
+	TArray<FRealtimeMeshSectionKey> MeshSection;
 	
+	TArray<FMeshDetail> MeshDetails;
+
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;
 	TArray<FVector2D> UV0;
@@ -206,5 +228,6 @@ private:
 	void CreateProcMesh();
 	void UpdateProcMesh();
 	void UpdateAINavigation() const;
-	void CleanUpData();
+	void CleanUpBuildData(); 
+	void CleanUpSectionData();
 };
